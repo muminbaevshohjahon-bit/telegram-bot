@@ -30,7 +30,7 @@ def save_data():
 user_data = load_data()
 TOTAL_TASKS = 7
 
-# Motivatsiyalar (Qisqartirildi, asosiylari qoldi)
+# Motivatsiyalar
 CUSTOM_MOTIVATIONS = [
     "Sen boshlamasang, hech narsa boshlanmaydi. 🔥",
     "Bugungi og‘riq — ertangi kuch. 💪",
@@ -165,73 +165,4 @@ def get_nick(message):
     user = get_user(message.chat.id)
     user['info']['nickname'] = message.text
     user['step'] = 'main'
-    # Noyob ID yaratish
-    public_id = f"MBE-{random.randint(10000, 99999)}"
-    user['info']['public_id'] = public_id
-    save_data()
-    
-    welcome_final = (
-        f"Tabriklayman muvaffaqiyatli ro‘yxatdan o‘tdingiz! 🔥\n\n"
-        f"Sizning maxfiy ID raqamingiz: <b>{public_id}</b>\n"
-        f"Reytingdagi nomingiz: <b>{message.text}</b>\n\n"
-        "Qani unda boshladik! 🚀"
-    )
-    bot.send_message(message.chat.id, welcome_final, parse_mode='HTML', reply_markup=main_menu())
-
-# --- REYTING (ID VA NICKNAME BILAN) ---
-@bot.message_handler(func=lambda m: m.text == "Peshqadamlar 🏆")
-def leaderboard(message):
-    # Ballar bo'yicha saralash
-    sorted_u = sorted(user_data.items(), key=lambda x: x[1].get('total_score', 0), reverse=True)[:10]
-    
-    text = "🏆 <b>TOP 10 PESHQADAMLAR</b>\n"
-    text += "<i>(Faqat ID va Nickname ko'rinadi)</i>\n\n"
-    
-    for i, (uid, data) in enumerate(sorted_u):
-        nick = data.get('info', {}).get('nickname', 'Noma'lum')
-        pid = data.get('info', {}).get('public_id', 'ID-yo'q')
-        score = data.get('total_score', 0)
-        text += f"{i+1}. {nick} [{pid}] — {score} ball\n"
-        
-    bot.send_message(message.chat.id, text, parse_mode='HTML')
-
-# --- QOLGAN FUNKSIYALAR (Finish, WebApp, Scheduler) ---
-@bot.message_handler(content_types=['web_app_data'])
-def web_app_receive(message):
-    data = json.loads(message.web_app_data.data)
-    user = get_user(message.chat.id)
-    if data.get('action') == "done":
-        task = data.get('task')
-        if task not in user['completed_today']:
-            user['completed_today'].append(task)
-            user['total_score'] += 10
-            save_data()
-            bot.send_message(message.chat.id, f"✅ {task} bajarildi!\n\n{random.choice(CUSTOM_MOTIVATIONS)}")
-
-@bot.message_handler(func=lambda m: m.text == "Finish 🏁")
-def finish_day(message):
-    user = get_user(message.chat.id)
-    today = datetime.now().strftime('%d/%m')
-    if any(today in entry for entry in user['history']):
-        bot.send_message(message.chat.id, "Bugun uchun vazifalar yakunlangan. ✨")
-        return
-    percent = int((len(user['completed_today']) / TOTAL_TASKS) * 100)
-    user['history'].append(f"{today}: {percent}%")
-    user['completed_today'] = []
-    save_data()
-    msg = f"🏁 <b>Natija: {percent}%</b>\n\n{random.choice(FINISH_MOTIVATIONS)}"
-    bot.send_animation(message.chat.id, random.choice(GIFS), caption=msg, parse_mode='HTML')
-
-def scheduler():
-    while True:
-        now = datetime.now().strftime("%H:%M")
-        if now in ["09:00", "14:00", "19:00"]:
-            for uid in list(user_data.keys()):
-                try: bot.send_message(uid, f"💡 <b>Eslatma:</b>\n\n{random.choice(CUSTOM_MOTIVATIONS)}")
-                except: continue
-        time.sleep(60)
-
-threading.Thread(target=scheduler, daemon=True).start()
-
-if __name__ == "__main__":
-    bot.infinity_polling()
+    public_id = f"MBE-{random.randint(10000, 9
