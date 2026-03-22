@@ -24,7 +24,8 @@ CREATE TABLE IF NOT EXISTS users (
 )
 """)
 conn.commit()
-
+cursor.execute("INSERT OR IGNORE INTO daily_tasks (day_id, task_text) VALUES (1, 'Kitob 20 min'), (2, 'Badantarbiya'), (3, '1 daqiqa tinchlik')")
+conn.commit()
 challenges = [
     "Gazsiz ichimliklar",
     "Tongda detox",
