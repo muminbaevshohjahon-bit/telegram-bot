@@ -39,6 +39,8 @@ MOTIVATIONS = [
 
 GIFS = [
     "https://media.giphy.com/media/3o7TKDkDbIDJieKbVm/giphy.gif",
+    "https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3eGE4bTFqbXo1eTFub2FhODBqNmgyZ3ZoNWZreWR6cDd1bDFicGxsNSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/vBbGN3xEJZfiWHiGW9/giphy.gif",
+    "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExaXU3bGl0dXg3c3FxM3VuZnl1ZW8wamRlbW5vbncxN2V1enNoNjhxOCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/g9582DNuQppxC/giphy.gif",
     "https://media.giphy.com/media/FACfMgP1N9mlG/giphy.gif"
 ]
 
