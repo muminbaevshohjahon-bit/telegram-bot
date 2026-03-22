@@ -1,168 +1,185 @@
 import telebot
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime
 import threading
 import time
-
 import os
-TOKEN = os.getenv("TOKEN")
-ADMIN_ID = 123456789
 
+# Sozlamalar
+TOKEN = os.getenv("TOKEN")
+ADMIN_ID = int(os.getenv("ADMIN_ID", "0")) # Sizning ID raqamingiz
 bot = telebot.TeleBot(TOKEN)
 
-conn = sqlite3.connect("data.db", check_same_thread=False)
+# Ma'lumotlar bazasini sozlash
+conn = sqlite3.connect("challenge.db", check_same_thread=False)
 cursor = conn.cursor()
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS users (
+    user_id INTEGER PRIMARY KEY,
+    full_name TEXT,
+    birth_year TEXT,
+    nickname TEXT,
+    points INTEGER DEFAULT 0,
+    streak INTEGER DEFAULT 0
+)
+""")
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS daily_stats (
     user_id INTEGER,
-    username TEXT,
     date TEXT,
-    completed TEXT,
-    streak INTEGER
+    tasks_completed INTEGER,
+    total_tasks INTEGER,
+    PRIMARY KEY (user_id, date)
 )
 """)
 conn.commit()
-cursor.execute("INSERT OR IGNORE INTO daily_tasks (day_id, task_text) VALUES (1, 'Kitob 20 min'), (2, 'Badantarbiya'), (3, '1 daqiqa tinchlik')")
-conn.commit()
-challenges = [
-    "Gazsiz ichimliklar",
-    "Tongda detox",
-    "Sugar detox",
-    "5000 sarmoya",
-    "Kitob 20 min",
-    "Badantarbiya",
-    "1 daqiqa tinchlik"
+
+CHALLENGES = [
+    "Gazsiz ichimliklar 🥤",
+    "Tongda detox (1 soat) 📵",
+    "Kitob mutolasi 📚",
+    "Sugar detox 🍬",
+    "1 daqiqa tinchlik 🧘",
+    "Badantarbiya 🏃",
+    "Suv (6 bokal) 💧"
 ]
 
-def keyboard():
-    kb = ReplyKeyboardMarkup(resize_keyboard=True)
-    for c in challenges:
-        kb.add(KeyboardButton(c))
-    kb.add(KeyboardButton("Finish"))
-    return kb
+user_data = {}
 
-def today():
-    return datetime.now().strftime("%Y-%m-%d")
-
-def get_user(user_id):
-    cursor.execute("SELECT * FROM users WHERE user_id=? AND date=?", (user_id, today()))
-    return cursor.fetchone()
-
-def save(user_id, username, data, streak):
-    cursor.execute("DELETE FROM users WHERE user_id=? AND date=?", (user_id, today()))
-    cursor.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?)",
-                   (user_id, username, today(), "|".join(data), streak))
-    conn.commit()
-
-def get_all_today():
-    cursor.execute("SELECT user_id, username, completed FROM users WHERE date=?", (today(),))
-    return cursor.fetchall()
+# --- RO'YXATDAN O'TISH QISMI ---
 
 @bot.message_handler(commands=['start'])
-def start(msg):
-    bot.send_message(msg.chat.id, "Challenge boshlandi 🔥", reply_markup=keyboard())
-
-@bot.message_handler(func=lambda m: True)
-def handle(msg):
-    user = msg.chat.id
-    username = msg.from_user.username or msg.from_user.first_name
-
-    row = get_user(user)
-
-    if row:
-        data = row[3].split("|") if row[3] else []
-        streak = row[4]
+def start(message):
+    cursor.execute("SELECT * FROM users WHERE user_id = ?", (message.from_user.id,))
+    user = cursor.fetchone()
+    if user:
+        main_menu(message)
     else:
-        data = []
-        streak = 0
+        bot.send_message(message.chat.id, "Assalomu alaykum! Challenge botiga xush kelibsiz. Ismingizni kiriting:")
+        bot.register_next_step_handler(message, get_name)
 
-    if msg.text == "Finish":
-        percent = int(len(data)/len(challenges)*100)
+def get_name(message):
+    user_data[message.from_user.id] = {'full_name': message.text}
+    bot.send_message(message.chat.id, "Tug'ilgan yilingizni kiriting (masalan: 2004):")
+    bot.register_next_step_handler(message, get_year)
 
-        # streak logika
-        if percent == 100:
-            streak += 1
-        else:
-            streak = 0
+def get_year(message):
+    user_data[message.from_user.id]['year'] = message.text
+    bot.send_message(message.chat.id, "O'zingiz uchun nickname (taxallus) oling:")
+    bot.register_next_step_handler(message, get_nickname)
 
-        save(user, username, data, streak)
+def get_nickname(message):
+    nick = message.text
+    data = user_data[message.from_user.id]
+    cursor.execute("INSERT INTO users (user_id, full_name, birth_year, nickname) VALUES (?, ?, ?, ?)",
+                   (message.from_user.id, data['full_name'], data['year'], nick))
+    conn.commit()
+    
+    bot.send_message(message.chat.id, "Tabriklaymiz, muvaffaqiyatli ro'yxatdan o'tdingiz! Challenge boshlandi! 🚀")
+    main_menu(message)
 
-        bot.send_message(user, f"📊 {percent}% bajarildi\n🔥 Streak: {streak} kun")
+# --- ASOSIY MENU ---
+
+def main_menu(message):
+    markup = ReplyKeyboardMarkup(resize_keyboard=True)
+    markup.add(KeyboardButton("Bugungi vazifalar ✅"))
+    markup.add(KeyboardButton("Leaderboard 🏆"), KeyboardButton("Statistika 📊"))
+    bot.send_message(message.chat.id, "Asosiy menyu:", reply_markup=markup)
+
+@bot.message_handler(func=lambda m: m.text == "Bugungi vazifalar ✅")
+def show_tasks(message):
+    now = datetime.now()
+    if now.hour >= 23:
+        bot.send_message(message.chat.id, "Bugun uchun qabul vaqti tugadi (23:00 gacha edi).")
         return
 
-    if msg.text in challenges:
-        if msg.text not in data:
-            data.append(msg.text)
-            save(user, username, data, streak)
-            bot.send_message(user, f"✅ {msg.text}")
-        else:
-            bot.send_message(user, "Oldin belgilangan")
+    markup = ReplyKeyboardMarkup(resize_keyboard=True)
+    for task in CHALLENGES:
+        markup.add(KeyboardButton(task))
+    markup.add(KeyboardButton("Finish 🏁"))
+    bot.send_message(message.chat.id, "Vazifalarni bajargach belgilang:", reply_markup=markup)
 
-# ADMIN PANEL
-@bot.message_handler(commands=['admin'])
-def admin(msg):
-    if msg.chat.id != ADMIN_ID:
-        return
+@bot.message_handler(func=lambda m: m.text in CHALLENGES)
+def complete_task(message):
+    uid = message.from_user.id
+    task = message.text
+    
+    if uid not in user_data: user_data[uid] = set()
+    user_data[uid].add(task)
+    
+    # Kayfiyat uchun rasm (ixtiyoriy rasm linki)
+    bot.send_photo(message.chat.id, "https://api.dicebear.com/7.x/thumbs/png?seed=" + task, 
+                   caption=f"Ajoyib! {task} bajarildi ✅")
 
-    users = get_all_today()
+@bot.message_handler(func=lambda m: m.text == "Finish 🏁")
+def finish_day(message):
+    uid = message.from_user.id
+    completed = len(user_data.get(uid, []))
+    total = len(CHALLENGES)
+    percent = int((completed / total) * 100)
+    
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    cursor.execute("INSERT OR REPLACE INTO daily_stats VALUES (?, ?, ?, ?)", (uid, date_str, completed, total))
+    
+    # Ballarni yangilash
+    cursor.execute("UPDATE users SET points = points + ? WHERE user_id = ?", (completed * 10, uid))
+    conn.commit()
 
-    leaderboard = []
-    text = "🏆 Leaderboard:\n"
+    if percent == 100:
+        msg = f"🔥 100% bajarildi!\nSen intizomli insonlar safidasan! Sen bilan faxrlanamiz! 🌟"
+    else:
+        msg = f"📊 {percent}% bajarildi.\nSenga ishonamiz! Bundan ko'prog'iga loyiqsan! 💪"
+    
+    bot.send_message(message.chat.id, msg)
+    user_data[uid] = set() # Tozalash
+    main_menu(message)
 
-    for u in users:
-        comp = u[2].split("|") if u[2] else []
-        percent = int(len(comp)/len(challenges)*100)
-        leaderboard.append((u[1], percent))
+# --- LEADERBOARD ---
 
-    leaderboard.sort(key=lambda x: x[1], reverse=True)
+@bot.message_handler(func=lambda m: m.text == "Leaderboard 🏆")
+def leaderboard(message):
+    cursor.execute("SELECT nickname, points FROM users ORDER BY points DESC LIMIT 10")
+    top_users = cursor.fetchall()
+    
+    text = "🏆 TOP FOYDALANUVCHILAR:\n\n"
+    for i, user in enumerate(top_users, 1):
+        text += f"{i}. {user[0]} — {user[1]} ball\n"
+    
+    bot.send_message(message.chat.id, text)
 
-    for i, (name, p) in enumerate(leaderboard[:10], 1):
-        text += f"{i}. @{name} — {p}%\n"
+# --- AVTOMATIK ESLATMALAR ---
 
-    bot.send_message(msg.chat.id, text)
-
-# ⏰ ESLATMA (HAR KUNI)
-def reminder():
+def scheduler():
     while True:
         now = datetime.now().strftime("%H:%M")
+        
+        # Tonggi eslatma
+        if now == "07:00":
+            send_to_all("☀️ Tongda: Bugun sen ko'prog'iga qodirsan!\nQani bo'l bo'shashma!")
+        
+        # Tushlik
+        elif now == "13:00":
+            send_to_all("🥗 Tushlik vaqti: Chellenjlar seni kutayabdi!")
+            
+        # Kechki
+        elif now == "20:00":
+            send_to_all("🌙 Kechqurun: Oz qoldi! Senga ishonamiz!")
+            
+        time.sleep(60)
 
-        if now == "20:00":
-            users = get_all_today()
-            for u in users:
-                try:
-                    bot.send_message(u[0], "⏰ Challenge eslatma! Bugungi vazifalarni bajardingmi?")
-                except:
-                    pass
+def send_to_all(text):
+    cursor.execute("SELECT user_id FROM users")
+    users = cursor.fetchall()
+    for user in users:
+        try:
+            bot.send_message(user[0], text)
+        except:
+            pass
 
-            time.sleep(60)
-
-        time.sleep(10)
-
-# 📊 HAFTALIK REPORT
-def weekly_report():
-    while True:
-        now = datetime.now()
-        # Yakshanba 21:00
-        if now.weekday() == 6 and now.strftime("%H:%M") == "21:00":
-            cursor.execute("SELECT username, COUNT(*) FROM users GROUP BY username")
-            data = cursor.fetchall()
-            text = "📊 Haftalik report:\n"
-            for d in data:
-                text += f"@{d[0]} — {d[1]} kun faol\n"
-            bot.send_message(ADMIN_ID, text)
-            time.sleep(60)
-        time.sleep(30)
-
-threading.Thread(target=reminder).start()
-threading.Thread(target=weekly_report).start()
-
-bot.polling(none_stop=True)
-
-        time.sleep(30)
-
-threading.Thread(target=reminder).start()
-threading.Thread(target=weekly_report).start()
+# Threadni ishga tushirish
+threading.Thread(target=scheduler, daemon=True).start()
 
 bot.polling(none_stop=True)
