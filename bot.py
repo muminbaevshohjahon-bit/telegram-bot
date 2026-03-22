@@ -8,8 +8,8 @@ from apscheduler.schedulers.background import BackgroundScheduler
 TOKEN = os.getenv("TOKEN")
 bot = telebot.TeleBot(TOKEN)
 
-# Foydalanuvchilar ro'yxati
-users_list = set()
+# Ma'lumotlarni saqlash (Oddiy lug'at ko'rinishida, lekin haqiqiy loyihada DB ishlatish tavsiya etiladi)
+user_data = {} 
 
 # Vazifalar ro'yxati
 DAILY_TASKS = [
@@ -17,122 +17,88 @@ DAILY_TASKS = [
     "Kitob mutolasi 📚",
     "Sugar detox 🍬",
     "Gazsiz ichimliklar 🥤",
-    "5000 so'm sarmoya 💰"
+    "5000 so'm sarmoya 💰",
+    "Jismoniy mashq 💪",
+    "1 daqiqa hech narsa qilmaslik 🧘‍♂️"
 ]
 
-# 1. 100 TA MOTIVATSIYA
-MOTIVATIONS = [
-    "Sen boshlamasang, hech narsa boshlanmaydi.", "Mukammallikni kutma — harakatni boshlash muhim.",
-    "Bugungi og‘riq — ertangi kuch.", "Sen o‘ylagandan ham kuchlisan.",
-    "Hech kim seni qutqarmaydi — o‘zingni o‘zing ko‘tar.", "Qiyinchilik — bu yashirin imkoniyat.",
-    "Orzular faqat harakat bilan haqiqatga aylanadi.", "Qo‘rqish — o‘sish boshlanishidir.",
-    "Har kuni kichik qadam — katta natija.", "Sen taslim bo‘lmaguningcha, yutqazmading.",
-    "Eng katta raqibing — kechagi o‘zing.", "Bahonalar seni orqaga tortadi.",
-    "Harakat — motivatsiyadan muhimroq.", "Vaqt ketmoqda — senchi?",
-    "Sen bunga loyiqsan — lekin ishlashing kerak.", "Og‘ir bo‘lsa ham davom et.",
-    "O‘zgarish og‘riqli, lekin zarur.", "Qanchalik qiynalsang, shunchalik kuchli bo‘lasan.",
-    "Natija sabrni yaxshi ko‘radi.", "Bugun qilmaganing — ertaga pushaymon bo‘ladi.",
-    "Sen o‘zingning hayoting uchun javobgarsan.", "Kichik boshlashdan uyalmagin.",
-    "Har kuni o‘zingni yeng.", "Kuch — ichingda. Uni uyg‘ot.",
-    "Taslim bo‘lish — eng oson yo‘l.", "Eng yaxshi vaqt — hozir.",
-    "Qancha ko‘p harakat, shuncha kam pushaymon.", "Qiyinchilik seni sinaydi, sindirmaydi.",
-    "Yutuq — intizom natijasi.", "Orzularing seni kutmaydi.",
-    "Qo‘rquv ortida — erkinlik bor.", "Hech kim senga majbur emas — o‘zingni isbotla.",
-    "Harakat qil, hatto mukammal bo‘lmasa ham.", "Yiqildingmi? Tur va davom et.",
-    "Sen hali boshlamading ham.", "Qanchalik ko‘p urinma, shunchalik yaqinlashasan.",
-    "Og‘riq vaqtinchalik — natija abadiy.", "Bugungi mehnat — ertangi faxr.",
-    "Sen o‘zingni o‘zgartirsang, hayoting o‘zgaradi.", "Kuchli bo‘lish — tanlov.",
-    "Intizom — erkinlik kaliti.", "Qachon qiyin bo‘lsa — o‘sha payt o‘sasan.",
-    "Orqaga emas, oldinga qaragin.", "Hech kim mukammal emas — lekin harakat qilayotganlar yutadi.",
-    "O‘z ustingda ishlash — eng yaxshi investitsiya.", "Sen bunga qodirsan.",
-    "Kech emas — hali vaqt bor.", "Boshlash — yarim g‘alaba.",
-    "Kuchli odamlar bahona qilmaydi.", "Har kuni yangi imkoniyat.",
-    "Sen taslim bo‘lsang — hammasi tugaydi.", "Sen davom etsang — hammasi boshlanadi.",
-    "O‘z yo‘lingni o‘zing yarat.", "Orzularing seni chaqiryapti.",
-    "Qadam tashla — yo‘l ochiladi.", "O‘zinga ishongan odam yutadi.",
-    "Harakat qil, hatto sekin bo‘lsa ham.", "Katta natija — kichik odatlardan boshlanadi.",
-    "Sabrsizlar yutqazadi.", "Qiyinchilik — vaqtinchalik mehmon.",
-    "Sen o‘zingni kashf qilmagansan hali.", "Har kuni o‘z ustingda ishlagin.",
-    "Yutuq — chidamlilik mevasidir.", "Sen o‘zingni cheklayapsan.",
-    "O‘zingga imkon ber.", "Eng katta tavakkal — urinmaslik.",
-    "Qo‘rquv seni to‘xtatmasin.", "Sen o‘zingni o‘zgartira olasan.",
-    "Bugun boshlagan odam ertaga yutadi.", "Hech qachon kech emas.",
-    "Harakat qil — natija keladi.", "Sen kuchsiz emassan — charchagansan xolos.",
-    "Dam ol, lekin taslim bo‘lma.", "Har kuni 1% yaxshilan.",
-    "Qanchalik qiynalsang, shunchalik qadrlaysan.", "Sen bunga arziysan.",
-    "O‘z hayotingni o‘zgartir.", "Yutuq oson kelmaydi.",
-    "Harakat qilmaslik — eng katta xato.", "Sen o‘zingni sinab ko‘r.",
-    "Orzular — jasurlarga tegishli.", "Sen hali imkoniyatlaringni ishlatmading.",
-    "O‘zingga sodiq bo‘l.", "Qiyin yo‘l — to‘g‘ri yo‘l bo‘lishi mumkin.",
-    "Taslim bo‘lish — variant emas.", "Sen yutishga yaratilgansan.",
-    "Harakat qil — sharoit o‘zgaradi.", "Sen boshlagan ishni tugat.",
-    "Eng zo‘r vaqt — hozir.", "O‘zgarish sendan boshlanadi.",
-    "Sen kuchli bo‘lishni tanla.", "O‘zingni o‘zing motivatsiya qil.",
-    "Har kuni yangi imkon.", "Sen hali eng yaxshisini ko‘rmading.",
-    "O‘z yo‘lingni tanla va yur.", "Sen bunga qodirsan — ishon.",
-    "Harakat qilgan odam yutadi.", "Qanchalik qiyin bo‘lsa — shunchalik qiymatli.",
-    "Sen hech qachon yolg‘iz emassan — o‘zing bor.", "Boshlagin. Hozir. Shu yerda."
-]
-
-# 2. ESLATMALAR
-REMINDERS = {
-    "morning": ["Hoy qayerdasan? Chellenjlar oson yuzni borib yuvishdan ko'ra:) 🧼", "Chellenjlar sizni kutmoqda voy e! Tur o'rningdan! 🏃‍♂️"],
-    "afternoon": ["Qani bo'la qoling... Bilaman qorin och, lekin chellenjlar qolib ketmasin! 🥗", "Siz hozir nima qilayabsiz? Aytaymi, kitob o'qimoqchisiz? 😉 📖"],
-    "evening": ["Uxlash oson! Orzular orzuligicha qolmasin :) ✨", "Hali imkoniyat bor! Orzularing seni kutmoqda. 🔥"]
-}
-
-# 3. TABRIKLAR VA GIFS
-CONGRATS = ["Biz kutgandik, bilgandik shunday bo'lishini! 🌟", "Porloq kelajak seni qo'lingda! ✨", "Sen bilan faxrlanaman! ✊", "Malades! Mana bu haqiqiy natija! 🔥"]
+# Motivatsiyalar va Tabriklar
+MOTIVATIONS = ["Sen boshlamasang, hech narsa boshlanmaydi.", "Bugungi og‘riq — ertangi kuch.", "Eng katta raqibing — kechagi o‘zing."]
+CONGRATS = ["Biz kutgandik, bilgandik shunday bo'lishini! 🌟", "Porloq kelajak seni qo'lingda! ✨", "Sen bilan faxrlanaman! ✊"]
 GIFS = [
     "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExeTVrZWJ3cWU2MDgzbTV3NGk5NWtocnNwdGJvd2cxMnJwMTRtN2RhYSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/3oEduUGL2JaSK7oS76/giphy.gif",
-    "https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3eW1hbnAyazN6OTRqa2R5ZHYyb250eHI4aW5zODFzZm0zOGFpOGt0NyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/ahDOY7XwxjNXW/giphy.gif",
-    "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOTVkZ3hueXBnNjkwZ2J1YjJkN2gwMHN3b3M3aXZ0cnRvMDFpbHdkZyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/FACfMgP1N9mlG/giphy.gif"
+    "https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3eW1hbnAyazN6OTRqa2R5ZHYyb250eHI4aW5zODFzZm0zOGFpOGt0NyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/ahDOY7XwxjNXW/giphy.gif"
 ]
 
-def send_periodic_msg(period):
-    msg = random.choice(REMINDERS[period])
-    for uid in list(users_list):
-        try: bot.send_message(uid, f"🔔 **ESLATMA:**\n\n{msg}", parse_mode='Markdown')
-        except: pass
+# --- YORDAMCHI FUNKSIYALAR ---
 
-scheduler = BackgroundScheduler()
-scheduler.add_job(send_periodic_msg, 'cron', hour=8, minute=0, args=['morning'])
-scheduler.add_job(send_periodic_msg, 'cron', hour=14, minute=0, args=['afternoon'])
-scheduler.add_job(send_periodic_msg, 'cron', hour=21, minute=0, args=['evening'])
-scheduler.start()
-
-# --- BOT FUNKSIYALARI ---
+def get_user_stats(uid):
+    if uid not in user_data:
+        user_data[uid] = {'daily_count': 0, 'history': [], 'total_days': 0}
+    return user_data[uid]
 
 def main_menu():
     markup = ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
     markup.add(KeyboardButton("Bugungi vazifalar ✅"), KeyboardButton("Natijalar jadvali 🏆"), KeyboardButton("Finish 🏁"))
     return markup
 
+# --- HANDLERLAR ---
+
 @bot.message_handler(commands=['start'])
 def start(message):
-    users_list.add(message.chat.id)
-    bot.send_message(message.chat.id, "<b>30 kunlik challenge'ga xush kelibsiz!</b> 🔥", parse_mode='HTML', reply_markup=main_menu())
+    uid = message.chat.id
+    get_user_stats(uid)
+    bot.send_message(uid, "<b>30 kunlik challenge'ga xush kelibsiz!</b> 🔥", parse_mode='HTML', reply_markup=main_menu())
 
 @bot.message_handler(func=lambda m: m.text == "Bugungi vazifalar ✅")
 def show_tasks(message):
+    uid = message.chat.id
+    stats = get_user_stats(uid)
     motivation = random.choice(MOTIVATIONS)
-    # Vazifalar tugmalarini chiqarish
+    
     markup = ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
     for task in DAILY_TASKS:
         markup.add(KeyboardButton(task))
     markup.add(KeyboardButton("Orqaga ⬅️"))
     
-    bot.send_message(message.chat.id, f"💡 **Kun motivatsiyasi:**\n'{motivation}'\n\n👇 **Vazifalaringiz:**", reply_markup=markup)
+    bot.send_message(uid, f"💡 **Motivatsiya:**\n'{motivation}'\n\nBugun bajarildi: {stats['daily_count']}/{len(DAILY_TASKS)}\n👇 Tanlang:", reply_markup=markup)
 
 @bot.message_handler(func=lambda m: m.text in DAILY_TASKS)
 def complete_task(message):
-    # Har bir vazifa bosilganda GIF va tabrik yuborish
+    uid = message.chat.id
+    stats = get_user_stats(uid)
+    stats['daily_count'] += 1
+    
     txt = random.choice(CONGRATS)
     gif = random.choice(GIFS)
-    bot.send_animation(message.chat.id, gif, caption=f"✨ {txt}")
+    bot.send_animation(uid, gif, caption=f"✨ {txt}\n\nBugungi natijangiz: {stats['daily_count']}/{len(DAILY_TASKS)}")
 
-@bot.message_handler(func=lambda m: m.text == "Orqaga ⬅️" or m.text == "Finish 🏁")
-def go_back(message):
-    bot.send_message(message.chat.id, "Asosiy menyu:", reply_markup=main_menu())
+@bot.message_handler(func=lambda m: m.text == "Finish 🏁")
+def finish_day(message):
+    uid = message.chat.id
+    stats = get_user_stats(uid)
+    
+    if stats['daily_count'] > 0:
+        stats['total_days'] += 1
+        stats['history'].append(f"{stats['total_days']}-kun: {stats['daily_count']} ta vazifa")
+        res = stats['daily_count']
+        stats['daily_count'] = 0 # Ertangi kun uchun nolga tushirish
+        
+        bot.send_message(uid, f"🏁 **Kun yakunlandi!**\nBugun {res} ta vazifa bajardingiz. Sen bilan faxrlanaman! ✊", reply_markup=main_menu())
+    else:
+        bot.send_message(uid, "Bugun hali borta ham vazifa bajarmadingiz-ku? 🤨", reply_markup=main_menu())
 
-bot.infinity_polling()
+@bot.message_handler(func=lambda m: m.text == "Natijalar jadvali 🏆")
+def show_leaderboard(message):
+    uid = message.chat.id
+    stats = get_user_stats(uid)
+    
+    if not stats['history']:
+        msg = "Hozircha natijalar yo'q. Bugun birinchi kunni yakunlang! 🚀"
+    else:
+        msg = "🏆 **Sizning 30 kunlik natijalaringiz:**\n\n" + "\n".join(stats['history'])
+    
+    bot.send_message(uid, msg, reply_markup=main_menu())
+
+@bot.message_handler(func=lambda m: m.text == "Orqaga ⬅️")
+def back
