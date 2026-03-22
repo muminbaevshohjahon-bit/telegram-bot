@@ -106,15 +106,33 @@ def main_menu():
     markup.add(KeyboardButton("Reyting 📊"), KeyboardButton("Finish 🏁"))
     return markup
 
-# --- REGISTRATION ---
+# --- REGISTRATION (YANGILANDI) ---
 @bot.message_handler(commands=['start'])
 def start(message):
     uid = str(message.chat.id)
     user = get_user(uid)
+    
+    # Yangi salomlashuv matni
+    welcome_text = (
+        "<b>Assalomu alaykum, xush kelibsiz!</b>\n"
+        "Men <b>MBE useful</b> tomonidan yaratilgan botman!\n\n"
+        "Sizga 30 kunlik chellenj orqali intizom shakllantirishga yordam beraman!\n"
+        "Balki foydasi tegar....\n\n"
+        "<i>Keling, tanishib olaylik. Ismingizni kiriting:</i>"
+    )
+    
     user['step'] = 'get_name'
     save_data()
-    bot.send_message(uid, "<b>Assalomu alaykum!</b>\nIsmingizni kiriting:", parse_mode='HTML')
+    bot.send_message(uid, welcome_text, parse_mode='HTML')
 
+# Ismni qabul qilish va keyingi qadamga o'tish
+@bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_name')
+def get_name(message):
+    user = get_user(message.chat.id)
+    user['info']['name'] = message.text
+    user['step'] = 'get_birth'
+    save_data()
+    bot.send_message(message.chat.id, "Tug‘ilgan yilingiz (masalan, 2004):")
 @bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_name')
 def get_name(message):
     user = get_user(message.chat.id)
