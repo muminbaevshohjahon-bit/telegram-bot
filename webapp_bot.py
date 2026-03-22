@@ -1,211 +1,115 @@
-import telebot
-import os
-import random
-import threading
-import time
-import json
-from telebot.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
-from datetime import datetime
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MBE Useful - Kabinet</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root { --bg: #1c1c1e; --card: #2c2c2e; --accent: #34c759; --text: #ffffff; --warn: #ff3b30; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
+        .tab-btn { background: var(--card); border: 1px solid #3a3a3c; color: white; padding: 10px; border-radius: 10px; flex: 1; margin: 5px; }
+        .tab-btn.active { border-color: var(--accent); color: var(--accent); }
+        .challenge-card { background: var(--card); padding: 18px; border-radius: 15px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #3a3a3c; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 15px; }
+        .day-box { aspect-ratio: 1; background: var(--card); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 14px; border: 1px solid #3a3a3c; opacity: 0.5; }
+        .day-box.active-day { opacity: 1; border-color: var(--accent); box-shadow: 0 0 5px var(--accent); }
+        .day-box.done { background: var(--accent); color: black; opacity: 1; border: none; }
+        .back-btn { background: var(--card); color: white; border: none; padding: 12px; border-radius: 10px; width: 100%; margin-bottom: 15px; }
+        #leaderboardView, #calendarView { display: none; }
+    </style>
+</head>
+<body>
 
-TOKEN = os.getenv("TOKEN")
-bot = telebot.TeleBot(TOKEN)
+    <div id="mainView">
+        <div style="display: flex;">
+            <button class="tab-btn active">Chellenjlar</button>
+            <button class="tab-btn" onclick="showView('leaderboardView')">Reyting 📊</button>
+        </div>
+        <h3 style="margin-top: 20px;">Vazifalar:</h3>
+        <div id="challengeList"></div>
+    </div>
 
-# --- DATA PERSISTENCE ---
-def save_data():
-    with open('users_db.json', 'w') as f:
-        json.dump(user_data, f)
+    <div id="calendarView">
+        <button class="back-btn" onclick="showView('mainView')">⬅️ Orqaga</button>
+        <h2 id="calTitle">Vazifa</h2>
+        <p id="timeWarning" style="color: var(--warn); font-size: 12px;"></p>
+        <div class="calendar-grid" id="calendarGrid"></div>
+    </div>
 
-def load_data():
-    if os.path.exists('users_db.json'):
-        with open('users_db.json', 'r') as f:
-            try: return json.load(f)
-            except: return {}
-    return {}
+    <div id="leaderboardView">
+        <button class="back-btn" onclick="showView('mainView')">⬅️ Orqaga</button>
+        <h2>🏆 Top Ishtirokchilar</h2>
+        <div id="rankData" style="background: var(--card); padding: 15px; border-radius: 15px;">
+            Yuklanmoqda...
+        </div>
+    </div>
 
-user_data = load_data()
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
 
-DAILY_TASKS = [
-    "Tongda detox (1 soat) 📵", "Kitob mutolasi 📚", "Sugar detox 🍬",
-    "Gazsiz ichimliklar 🥤", "5000 so'm sarmoya 💰", "Jismoniy mashq 💪",
-    "1 daqiqa hech narsa qilmaslik 🧘‍♂️"
-]
+        const challenges = ["Kitob mutolasi 📚", "Jismoniy mashq 💪", "Sugar detox 🍬", "Gazsiz ichimliklar 🥤", "5000 so'm sarmoya 💰", "1 daqiqa sukunat 🧘‍♂️"];
+        const today = new Date().getDate(); 
+        const hour = new Date().getHours();
 
-MOTIVATIONS = [
-    "Sen boshlamasang, hech narsa boshlanmaydi.", "Bugungi og‘riq — ertangi kuch.",
-    "Sen o‘ylagandan ham kuchlisan.", "Eng katta raqibing — kechagi o‘zing.",
-    "Harakat — motivatsiyadan muhimroq.", "Vaqt ketmoqda — senchi?",
-    "Intizom — erkinlik kaliti.", "Eng zo‘r vaqt — hozir."
-]
-
-GIFS = [
-   "https://media.giphy.com/media/3o7TKDkDbIDJieKbVm/giphy.gif",
-   "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExaXU3bGl0dXg3c3FxM3VuZnl1ZW8wamRlbW5vbncxN2V1enNoNjhxOCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/8ZblO3ZD5NMltPaFS2/giphy.gif",
-   "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExaXU3bGl0dXg3c3FxM3VuZnl1ZW8wamRlbW5vbncxN2V1enNoNjhxOCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/g9582DNuQppxC/giphy.gif",
-   "https://media.giphy.com/media/FACfMgP1N9mlG/giphy.gif"
-]
-
-# --- HELPERS ---
-def get_user(uid):
-    uid = str(uid)
-    if uid not in user_data:
-        user_data[uid] = {
-            'info': {}, 'daily_count': 0, 'history': [],
-            'total_score': 0, 'completed_tasks': [], 'step': 'start'
+        function showView(viewId) {
+            ['mainView', 'calendarView', 'leaderboardView'].forEach(v => document.getElementById(v).style.display = 'none');
+            document.getElementById(viewId).style.display = 'block';
         }
-    return user_data[uid]
 
-def main_menu():
-    markup = ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
-    
-    # GITHUB PAGES LINKINI SHU YERGA QO'YING
-    web_url = "https://muminbaevshohjahon-bit.github.io/telegram-bot/"
-    
-    # Mini App tugmasi
-    btn_webapp = KeyboardButton("Shaxsiy Kabinet 📱", web_app=WebAppInfo(url=web_url))
-    
-    btn_tasks = KeyboardButton("Bugungi vazifalar ✅")
-    btn_results = KeyboardButton("Natijalar jadvali 🏆")
-    btn_rank = KeyboardButton("Reyting 📊")
-    btn_finish = KeyboardButton("Finish 🏁")
-    
-    markup.add(btn_webapp) 
-    markup.add(btn_tasks, btn_results)
-    markup.add(btn_rank, btn_finish)
-    return markup
+        function initMain() {
+            const list = document.getElementById('challengeList');
+            list.innerHTML = '';
+            challenges.forEach(ch => {
+                const card = document.createElement('div');
+                card.className = 'challenge-card';
+                card.innerHTML = `<span>${ch}</span><span>➡️</span>`;
+                card.onclick = () => openCalendar(ch);
+                list.appendChild(card);
+            });
+        }
 
-# --- REGISTRATION ---
-@bot.message_handler(commands=['start'])
-def start(message):
-    uid = str(message.chat.id)
-    user = get_user(uid)
-    
-    # Tekshiruv: Agar foydalanuvchi ismi bazada bo'lsa, to'g'ridan-to'g'ri menyuni ko'rsatish
-    if 'name' in user.get('info', {}):
-        user['step'] = 'main'
-        bot.send_message(uid, f"Xush kelibsiz, {user['info']['name']}! Davom etamizmi?", reply_markup=main_menu())
-    else:
-        welcome_text = (
-            "<b><i>Assalomu aleykum hush kelibsiz!</i></b>\n"
-            "<b><i>Men MBE useful tomonidan yaratilgan botman!</i></b>\n\n"
-            "<b><i>Maqsadimiz 30 kunlik chellenj davomida intizomni shakllantirish.</i></b>\n"
-            "Keling tanishib olaylik... Ismingizni kiriting:"
-        )
-        user['step'] = 'get_name'
-        bot.send_message(uid, welcome_text, parse_mode='HTML')
-    save_data()
+        function openCalendar(name) {
+            showView('calendarView');
+            document.getElementById('calTitle').innerText = name;
+            const grid = document.getElementById('calendarGrid');
+            grid.innerHTML = '';
 
-# --- STEP HANDLERS (Ism, Tug'ilgan yil va hk) ---
-@bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_name')
-def get_name(message):
-    user = get_user(message.chat.id)
-    user['info']['name'] = message.text
-    user['step'] = 'get_birth'
-    save_data()
-    bot.send_message(message.chat.id, "Tug‘ilgan yilingiz (masalan, 2004):")
+            const isLate = hour >= 23;
+            document.getElementById('timeWarning').innerText = isLate ? "Soat 23:00 dan o'tdi. Bugunni belgilash yopilgan!" : "Bugungi vazifa uchun faqat joriy kunni belgilang.";
 
-@bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_birth')
-def get_birth(message):
-    user = get_user(message.chat.id)
-    user['info']['birth_year'] = message.text
-    user['step'] = 'get_month'
-    save_data()
-    bot.send_message(message.chat.id, "Tug‘ilgan oy (1-12):")
+            for (let i = 1; i <= 30; i++) {
+                const day = document.createElement('div');
+                day.className = 'day-box';
+                day.innerText = i;
+                
+                if (i === today) day.classList.add('active-day');
 
-@bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_month')
-def get_month(message):
-    user = get_user(message.chat.id)
-    user['info']['birth_month'] = message.text
-    user['step'] = 'get_day'
-    save_data()
-    bot.send_message(message.chat.id, "Tug‘ilgan kun (1-31):")
+                const key = `ch_${name}_day_${i}`;
+                if (localStorage.getItem(key)) day.classList.add('done');
 
-@bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_day')
-def get_day(message):
-    user = get_user(message.chat.id)
-    user['info']['birth_day'] = message.text
-    user['step'] = 'get_nick'
-    save_data()
-    bot.send_message(message.chat.id, "Nickname kiriting:")
+                day.onclick = () => {
+                    if (i !== today) {
+                        tg.showAlert("Faqat bugungi kunni belgilashingiz mumkin!");
+                        return;
+                    }
+                    if (isLate) {
+                        tg.showAlert("Kech qoldingiz! Vazifalar 23:00 gacha qabul qilinadi.");
+                        return;
+                    }
+                    if (!day.classList.contains('done')) {
+                        day.classList.add('done');
+                        localStorage.setItem(key, 'true');
+                        // Botga xabar yuborish
+                        tg.sendData(JSON.stringify({action: "task_done", task: name}));
+                    }
+                };
+                grid.appendChild(day);
+            }
+        }
 
-@bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_nick')
-def get_nick(message):
-    user = get_user(message.chat.id)
-    user['info']['nickname'] = message.text
-    user['step'] = 'main'
-    public_id = f"MBE-{random.randint(10000, 99999)}"
-    user['info']['public_id'] = public_id
-    save_data()
-    bot.send_message(message.chat.id, f"Tabrikleyshn! 🔥 ID: <b>{public_id}</b>", parse_mode='HTML', reply_markup=main_menu())
-
-# --- TASKS & OTHER HANDLERS ---
-@bot.message_handler(func=lambda m: m.text == "Bugungi vazifalar ✅")
-def show_tasks(message):
-    user = get_user(message.chat.id)
-    markup = ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
-    for task in DAILY_TASKS:
-        prefix = "✅ " if task in user.get('completed_tasks', []) else ""
-        markup.add(KeyboardButton(f"{prefix}{task}"))
-    markup.add(KeyboardButton("Orqaga ⬅️"))
-    bot.send_message(message.chat.id, f"Holat: {user['daily_count']}/{len(DAILY_TASKS)}", reply_markup=markup)
-
-@bot.message_handler(func=lambda m: m.text in DAILY_TASKS or (m.text.startswith("✅ ") and m.text[2:] in DAILY_TASKS))
-def complete_task(message):
-    user = get_user(message.chat.id)
-    task_name = message.text.replace("✅ ", "")
-    if task_name in user.get('completed_tasks', []):
-        bot.send_message(message.chat.id, "Bajarilgan!")
-        return
-    user.setdefault('completed_tasks', []).append(task_name)
-    user['daily_count'] += 1
-    user['total_score'] += 10
-    save_data()
-    bot.send_message(message.chat.id, f"✅ +10 ball\n{random.choice(MOTIVATIONS)}")
-
-@bot.message_handler(func=lambda m: m.text == "Finish 🏁")
-def finish_day(message):
-    user = get_user(message.chat.id)
-    if user['daily_count'] == 0:
-        bot.send_message(message.chat.id, "Hech bo'lmasa bitta vazifa bajaring!")
-        return
-    percent = int((user['daily_count'] / len(DAILY_TASKS)) * 100)
-    user['history'].append(f"{datetime.now().strftime('%d/%m')} - {percent}%")
-    motivation = random.choice(MOTIVATIONS)
-    gif = random.choice(GIFS)
-    bot.send_animation(message.chat.id, gif, caption=f"🏁 <b>Kun yakunlandi!✊</b>\nNatija: {percent}%\n\n<i>{motivation}</i>", parse_mode='HTML')
-    user['daily_count'] = 0
-    user['completed_tasks'] = []
-    save_data()
-
-@bot.message_handler(func=lambda m: m.text == "Reyting 📊")
-def show_rank(message):
-    sorted_u = sorted(user_data.items(), key=lambda x: x[1]['total_score'], reverse=True)[:10]
-    text = "🏆 <b>TOP 10</b>\n\n"
-    for i, (uid, data) in enumerate(sorted_u):
-        text += f"{i+1}. {data['info'].get('nickname', 'User')} — {data['total_score']} ball\n"
-    bot.send_message(message.chat.id, text, parse_mode='HTML')
-
-@bot.message_handler(func=lambda m: m.text == "Natijalar jadvali 🏆")
-def show_results(message):
-    user = get_user(message.chat.id)
-    history = "\n".join(user['history']) if user['history'] else "Hali natijalar yo'q."
-    bot.send_message(message.chat.id, f"📊 <b>Sizning tarixingiz:</b>\n{history}", parse_mode='HTML')
-
-@bot.message_handler(func=lambda m: m.text == "Orqaga ⬅️")
-def back(message):
-    bot.send_message(message.chat.id, "Menyu:", reply_markup=main_menu())
-
-def reminder_loop():
-    while True:
-        try:
-            now = datetime.now().hour
-            if 9 <= now <= 22:
-                for uid in list(user_data.keys()):
-                    if user_data[uid].get('step') == 'main':
-                        bot.send_message(uid, f"💡 <b>Motivatsiya:</b>\n\n{random.choice(MOTIVATIONS)}", parse_mode='HTML')
-        except: pass
-        time.sleep(3600)
-
-threading.Thread(target=reminder_loop, daemon=True).start()
-
-if __name__ == "__main__":
-    bot.infinity_polling(skip_pending=True)
+        initMain();
+    </script>
+</body>
+</html>
