@@ -3,33 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MBE Useful - Intizom</title>
+    <title>MBE Useful</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root { --bg: #1c1c1e; --card: #2c2c2e; --accent: #34c759; --text: #ffffff; }
-        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 15px; margin: 0; }
         .challenge-card { background: var(--card); padding: 18px; border-radius: 15px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #3a3a3c; }
         .calendar-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 15px; }
-        .day-box { aspect-ratio: 1; background: var(--card); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 14px; border: 1px solid #3a3a3c; cursor: pointer; }
-        .day-box.done { background: var(--accent); color: black; border: none; font-weight: bold; }
+        .day-box { aspect-ratio: 1; background: var(--card); border-radius: 10px; display: flex; align-items: center; justify-content: center; border: 1px solid #3a3a3c; opacity: 0.4; }
+        .day-box.active { border-color: var(--accent); opacity: 1; font-weight: bold; }
+        .day-box.done { background: var(--accent); color: black; opacity: 1; border: none; }
         .back-btn { background: var(--card); color: white; border: none; padding: 12px; border-radius: 10px; width: 100%; margin-bottom: 15px; font-weight: bold; }
         #calendarView { display: none; }
-        h2 { color: var(--accent); margin: 10px 0; }
+        h2 { color: var(--accent); }
     </style>
 </head>
 <body>
 
     <div id="mainView">
-        <div style="text-align: center; margin-bottom: 20px;">
-            <h2 id="userName">Salom!</h2>
-            <p style="opacity: 0.7;">30 kunlik intizom yo'li</p>
-        </div>
+        <h2 id="userName">Salom!</h2>
         <div id="challengeList"></div>
     </div>
 
     <div id="calendarView">
-        <button class="back-btn" onclick="showMain()">⬅️ Orqaga qaytish</button>
+        <button class="back-btn" onclick="showMain()">⬅️ Orqaga</button>
         <h2 id="calTitle">Vazifa</h2>
+        <p style="font-size: 12px; opacity: 0.7;">Faqat joriy kunni belgilashingiz mumkin.</p>
         <div class="calendar-grid" id="calendarGrid"></div>
     </div>
 
@@ -38,6 +37,9 @@
         tg.expand();
 
         const tasks = ["Tongda detox 📵", "Kitob mutolasi 📚", "Sugar detox 🍬", "Gazsiz ichimliklar 🥤", "5000 so'm sarmoya 💰", "Jismoniy mashq 💪", "1 daqiqa sukunat 🧘‍♂️"];
+        
+        // Bu kunlik tartibni aniqlash (Masalan, local storage'da saqlash)
+        let userDay = parseInt(localStorage.getItem('current_discipline_day')) || 1;
 
         function showMain() {
             document.getElementById('mainView').style.display = 'block';
@@ -46,11 +48,11 @@
 
         function init() {
             const list = document.getElementById('challengeList');
-            tasks.forEach(task => {
+            tasks.forEach(t => {
                 const card = document.createElement('div');
                 card.className = 'challenge-card';
-                card.innerHTML = `<span>${task}</span><span>➡️</span>`;
-                card.onclick = () => openCalendar(task);
+                card.innerHTML = `<span>${t}</span><span>➡️</span>`;
+                card.onclick = () => openCalendar(t);
                 list.appendChild(card);
             });
             if (tg.initDataUnsafe.user) {
@@ -62,28 +64,27 @@
             document.getElementById('mainView').style.display = 'none';
             document.getElementById('calendarView').style.display = 'block';
             document.getElementById('calTitle').innerText = name;
-            
             const grid = document.getElementById('calendarGrid');
             grid.innerHTML = '';
 
             for (let i = 1; i <= 30; i++) {
                 const day = document.createElement('div');
                 day.className = 'day-box';
+                if (i === userDay) day.classList.add('active');
                 day.innerText = i;
                 
-                const key = `task_${name}_day_${i}`;
+                const key = `t_${name}_d_${i}`;
                 if (localStorage.getItem(key)) day.classList.add('done');
 
                 day.onclick = () => {
+                    if (i !== userDay) {
+                        tg.showAlert("Faqat bugungi kunni belgilash mumkin!");
+                        return;
+                    }
                     if (!day.classList.contains('done')) {
-                        const hour = new Date().getHours();
-                        if (hour >= 23) {
-                            tg.showAlert("Kech qoldingiz! Vazifalar 23:00 gacha qabul qilinadi.");
-                            return;
-                        }
                         day.classList.add('done');
                         localStorage.setItem(key, 'true');
-                        tg.sendData(JSON.stringify({action: "done", task: name, day: i}));
+                        tg.sendData(JSON.stringify({action: "done", task: name}));
                     }
                 };
                 grid.appendChild(day);
