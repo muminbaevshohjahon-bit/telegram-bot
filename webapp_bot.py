@@ -165,4 +165,4 @@ def get_nick(message):
     user = get_user(message.chat.id)
     user['info']['nickname'] = message.text
     user['step'] = 'main'
-    public_id = f"MBE-{random.randint(10000, 9999)"
+    public_id = f"MBE-{random.randint(10000, 9999)}"
