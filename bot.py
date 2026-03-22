@@ -11,7 +11,16 @@ bot = telebot.TeleBot(TOKEN)
 # Foydalanuvchilar ro'yxati
 users_list = set()
 
-# 1. 100 TA MOTIVATSIYA (Xatosiz yopilgan qatorlar bilan)
+# Vazifalar ro'yxati
+DAILY_TASKS = [
+    "Tongda detox (1 soat) 📵",
+    "Kitob mutolasi 📚",
+    "Sugar detox 🍬",
+    "Gazsiz ichimliklar 🥤",
+    "5000 so'm sarmoya 💰"
+]
+
+# 1. 100 TA MOTIVATSIYA
 MOTIVATIONS = [
     "Sen boshlamasang, hech narsa boshlanmaydi.", "Mukammallikni kutma — harakatni boshlash muhim.",
     "Bugungi og‘riq — ertangi kuch.", "Sen o‘ylagandan ham kuchlisan.",
@@ -32,7 +41,7 @@ MOTIVATIONS = [
     "Harakat qil, hatto mukammal bo‘lmasa ham.", "Yiqildingmi? Tur va davom et.",
     "Sen hali boshlamading ham.", "Qanchalik ko‘p urinma, shunchalik yaqinlashasan.",
     "Og‘riq vaqtinchalik — natija abadiy.", "Bugungi mehnat — ertangi faxr.",
-    "Sen o‘zingni o‘zgartirsang, hayoting o‘zgarari.", "Kuchli bo‘lish — tanlov.",
+    "Sen o‘zingni o‘zgartirsang, hayoting o‘zgaradi.", "Kuchli bo‘lish — tanlov.",
     "Intizom — erkinlik kaliti.", "Qachon qiyin bo‘lsa — o‘sha payt o‘sasan.",
     "Orqaga emas, oldinga qaragin.", "Hech kim mukammal emas — lekin harakat qilayotganlar yutadi.",
     "O‘z ustingda ishlash — eng yaxshi investitsiya.", "Sen bunga qodirsan.",
@@ -65,73 +74,65 @@ MOTIVATIONS = [
     "Sen hech qachon yolg‘iz emassan — o‘zing bor.", "Boshlagin. Hozir. Shu yerda."
 ]
 
-# 2. ZAMONAVIY VA KUCHLI ESLATMALAR
+# 2. ESLATMALAR
 REMINDERS = {
-    "morning": [
-        "Hoy qayerdasan? Chellenjlar oson yuzni borib yuvishdan ko'ra:) 🧼",
-        "Chellenjlar sizni kutmoqda voy e! Tur o'rningdan! 🏃‍♂️",
-        "Bugun seni yengadigan tong bo'lsin! Qani, boshladik! ✨"
-    ],
-    "afternoon": [
-        "Qani bo'la qoling... Bilaman qorin och, lekin chellenjlar qolib ketmasin! 🥗",
-        "Siz hozir nima qilayabsiz? Aytaymi, kitob o'qimoqchisiz? 😉 📖",
-        "Energiyani tushirmang! Orzular uchun hozir ayni vaqti! 🔥"
-    ],
-    "evening": [
-        "Uxlash oson! Orzular orzuligicha qolmasin :) ✨",
-        "Hali imkoniyat bor! Orzularing seni kutmoqda. 🔥",
-        "Shirin tushlarga bilet olishdan oldin hamma vazifani yopamiz! 🎫",
-        "Kuning qanday o'tdi? Finishni bosishga tayyormisan? ✅"
-    ]
+    "morning": ["Hoy qayerdasan? Chellenjlar oson yuzni borib yuvishdan ko'ra:) 🧼", "Chellenjlar sizni kutmoqda voy e! Tur o'rningdan! 🏃‍♂️"],
+    "afternoon": ["Qani bo'la qoling... Bilaman qorin och, lekin chellenjlar qolib ketmasin! 🥗", "Siz hozir nima qilayabsiz? Aytaymi, kitob o'qimoqchisiz? 😉 📖"],
+    "evening": ["Uxlash oson! Orzular orzuligicha qolmasin :) ✨", "Hali imkoniyat bor! Orzularing seni kutmoqda. 🔥"]
 }
 
-# 3. SAMIMIY TABRIKLAR VA GIF-LAR
-CONGRATS = [
-    "Biz kutgandik, bilgandik shunday bo'lishini! 🌟",
-    "Porloq kelajak seni qo'lingda! ✨",
-    "Sen bilan faxrlanaman! ✊",
-    "Malades! Mana bu haqiqiy natija! 🔥"
-]
-
+# 3. TABRIKLAR VA GIFS
+CONGRATS = ["Biz kutgandik, bilgandik shunday bo'lishini! 🌟", "Porloq kelajak seni qo'lingda! ✨", "Sen bilan faxrlanaman! ✊", "Malades! Mana bu haqiqiy natija! 🔥"]
 GIFS = [
     "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExeTVrZWJ3cWU2MDgzbTV3NGk5NWtocnNwdGJvd2cxMnJwMTRtN2RhYSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/3oEduUGL2JaSK7oS76/giphy.gif",
     "https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3eW1hbnAyazN6OTRqa2R5ZHYyb250eHI4aW5zODFzZm0zOGFpOGt0NyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/ahDOY7XwxjNXW/giphy.gif",
-    "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOTVkZ3hueXBnNjkwZ2J1YjJkN2gwMHN3b3M3aXZ0cnRvMDFpbHdkZyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/FACfMgP1N9mlG/giphy.gif",
-    "https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3ZTc5MnQxOTdhY3dnMWpuNXFmdzJ0dnR1Z29hMGV4cnVnaXp1YmtqbiZlcD12MV9naWZzX3NlYXJjaCZjdD1n/IHETYBuNarfOwyDBrY/giphy.gif"
+    "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOTVkZ3hueXBnNjkwZ2J1YjJkN2gwMHN3b3M3aXZ0cnRvMDFpbHdkZyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/FACfMgP1N9mlG/giphy.gif"
 ]
 
 def send_periodic_msg(period):
     msg = random.choice(REMINDERS[period])
     for uid in list(users_list):
-        try:
-            bot.send_message(uid, f"🔔 **ESLATMA:**\n\n{msg}", parse_mode='Markdown')
+        try: bot.send_message(uid, f"🔔 **ESLATMA:**\n\n{msg}", parse_mode='Markdown')
         except: pass
 
-# Scheduler (Siz aytgan vaqt oralig'ida random xabarlar yuboradi)
 scheduler = BackgroundScheduler()
 scheduler.add_job(send_periodic_msg, 'cron', hour=8, minute=0, args=['morning'])
 scheduler.add_job(send_periodic_msg, 'cron', hour=14, minute=0, args=['afternoon'])
 scheduler.add_job(send_periodic_msg, 'cron', hour=21, minute=0, args=['evening'])
 scheduler.start()
 
+# --- BOT FUNKSIYALARI ---
+
+def main_menu():
+    markup = ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
+    markup.add(KeyboardButton("Bugungi vazifalar ✅"), KeyboardButton("Natijalar jadvali 🏆"), KeyboardButton("Finish 🏁"))
+    return markup
+
 @bot.message_handler(commands=['start'])
 def start(message):
     users_list.add(message.chat.id)
-    markup = ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
-    markup.add(KeyboardButton("Bugungi vazifalar ✅"), KeyboardButton("Natijalar jadvali 🏆"), KeyboardButton("Finish 🏁"))
-    welcome_text = "<b>30 kunlik challenge'ga xush kelibsiz!</b> 🔥\n\n<i>Bu bot MBE Useful tomonidan yaratilgan.</i>"
-    bot.send_message(message.chat.id, welcome_text, parse_mode='HTML', reply_markup=markup)
+    bot.send_message(message.chat.id, "<b>30 kunlik challenge'ga xush kelibsiz!</b> 🔥", parse_mode='HTML', reply_markup=main_menu())
 
 @bot.message_handler(func=lambda m: m.text == "Bugungi vazifalar ✅")
 def show_tasks(message):
     motivation = random.choice(MOTIVATIONS)
-    bot.send_message(message.chat.id, f"💡 **Kun motivatsiyasi:**\n'{motivation}'\n\nVazifalarni boshlang!")
+    # Vazifalar tugmalarini chiqarish
+    markup = ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
+    for task in DAILY_TASKS:
+        markup.add(KeyboardButton(task))
+    markup.add(KeyboardButton("Orqaga ⬅️"))
+    
+    bot.send_message(message.chat.id, f"💡 **Kun motivatsiyasi:**\n'{motivation}'\n\n👇 **Vazifalaringiz:**", reply_markup=markup)
 
-@bot.message_handler(func=lambda m: "✅" in m.text and m.text != "Bugungi vazifalar ✅")
-def task_done(message):
-    # Har bir topshiriqdan keyin random tabrik va GIF
+@bot.message_handler(func=lambda m: m.text in DAILY_TASKS)
+def complete_task(message):
+    # Har bir vazifa bosilganda GIF va tabrik yuborish
     txt = random.choice(CONGRATS)
     gif = random.choice(GIFS)
     bot.send_animation(message.chat.id, gif, caption=f"✨ {txt}")
+
+@bot.message_handler(func=lambda m: m.text == "Orqaga ⬅️" or m.text == "Finish 🏁")
+def go_back(message):
+    bot.send_message(message.chat.id, "Asosiy menyu:", reply_markup=main_menu())
 
 bot.infinity_polling()
