@@ -36,13 +36,7 @@ CUSTOM_MOTIVATIONS = [
     "Bugungi og‘riq — ertangi kuch. 💪",
     "Eng zo‘r vaqt — hozir. 🚀",
     "Intizom — bu o'ziga berilgan va'dani bajarishdir. ✨"
-]
-
-FINISH_MOTIVATIONS = [
-    "Dahshat! Vapshe zo'r, barakalla! 🔥",
-    "Sen o'ylagandan ham kuchlisan, davom et! 💪",
-    "Intizom — bu o'zingga bo'lgan hurmat. Zo'r ketyapsan! 🌟"
-        "Sen boshlamasang, hech narsa boshlanmaydi.", "Mukammallikni kutma — harakatni boshlash muhim.",
+    "Sen boshlamasang, hech narsa boshlanmaydi.", "Mukammallikni kutma — harakatni boshlash muhim.",
     "Bugungi og‘riq — ertangi kuch.", "Sen o‘ylagandan ham kuchlisan.",
     "Hech kim seni qutqarmaydi — o‘zingni o‘zing ko‘tar.", "Qiyinchilik — bu yashirin imkoniyat.",
     "Orzular faqat harakat bilan haqiqatga aylanadi.", "Qo‘rqish — o‘sish boshlanishidir.",
@@ -92,8 +86,14 @@ FINISH_MOTIVATIONS = [
     "O‘z yo‘lingni tanla va yur.", "Sen bunga qodirsan — ishon.",
     "Harakat qilgan odam yutadi.", "Qanchalik qiyin bo‘lsa — shunchalik qiymatli.",
     "Sen hech qachon yolg‘iz emassan — o‘zing bor.", "Boshlagin. Hozir. Shu yerda."
+
 ]
 
+FINISH_MOTIVATIONS = [
+    "Dahshat! Vapshe zo'r, barakalla! 🔥",
+    "Sen o'ylagandan ham kuchlisan, davom et! 💪",
+    "Intizom — bu o'zingga bo'lgan hurmat. Zo'r ketyapsan! 🌟"
+]
 
 GIFS = ["https://media.giphy.com/media/FACfMgP1N9mlG/giphy.gif"]
 
@@ -123,26 +123,28 @@ def start(message):
         "Bu bot MBE Useful tomonidan yaratilgan 30 kunlik chellenj testi.\n\n"
         "<i>Foydasi tegsa duo qilib qo’ying.</i>\n\n"
         "Keling tanishib olamiz!\n<b>Ismingiz:</b>"
-    )
+        # 2. Foydalanuvchi holatini yangilash
     user['step'] = 'get_name'
     save_data()
-    bot.send_message(message.chat.id, text, parse_mode='HTML')
+    
+    # 3. Matnni foydalanuvchiga yuborish
+    bot.send_message(uid, welcome_text, parse_mode='HTML')
 
 @bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_name')
 def get_name(message):
     user = get_user(message.chat.id)
     user['info']['name'] = message.text
-    user['step'] = 'get_year'
+    user['step'] = 'get_birth'
     save_data()
-    bot.send_message(message.chat.id, "<b>Tug‘ilgan yilingiz:</b>", parse_mode='HTML')
+    bot.send_message(message.chat.id, "Tug‘ilgan yilingiz (masalan, 2004):")
 
-@bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_year')
-def get_year(message):
+@bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_birth')
+def get_birth(message):
     user = get_user(message.chat.id)
     user['info']['birth_year'] = message.text
     user['step'] = 'get_month'
     save_data()
-    bot.send_message(message.chat.id, "<b>Tug‘ilgan oyingiz:</b>", parse_mode='HTML')
+    bot.send_message(message.chat.id, "Tug‘ilgan oy (1-12):")
 
 @bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_month')
 def get_month(message):
@@ -150,21 +152,26 @@ def get_month(message):
     user['info']['birth_month'] = message.text
     user['step'] = 'get_day'
     save_data()
-    bot.send_message(message.chat.id, "<b>Tug‘ilgan kuningiz:</b>", parse_mode='HTML')
+    bot.send_message(message.chat.id, "Tug‘ilgan kun (1-31):")
 
 @bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_day')
 def get_day(message):
     user = get_user(message.chat.id)
     user['info']['birth_day'] = message.text
-    user['info']['nickname'] = user['info']['name']
-    user['step'] = 'main'
+    user['step'] = 'get_nick'
     save_data()
-    bot.send_message(
-        message.chat.id, 
-        "<b>Tabriklayman muvaffaqiyatli ro‘yxatdan o‘tdingiz!</b>\n\nQani unda boshladik! 🚀", 
-        parse_mode='HTML', 
-        reply_markup=main_menu()
-    )
+    bot.send_message(message.chat.id, "Nickname kiriting:")
+
+@bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_nick')
+def get_nick(message):
+    user = get_user(message.chat.id)
+    user['info']['nickname'] = message.text
+    user['step'] = 'main'
+    public_id = f"MBE-{random.randint(10000, 99999)}"
+    user['info']['public_id'] = public_id
+    save_data()
+    bot.send_message(message.chat.id, f"Tabrikleyshn ro‘yxatdan o‘tdingiz!🔥 ID: <b>{public_id}</b>", parse_mode='HTML', reply_markup=main_menu())
+
 
 # --- BOT FUNKSIYALARI ---
 @bot.message_handler(content_types=['web_app_data'])
