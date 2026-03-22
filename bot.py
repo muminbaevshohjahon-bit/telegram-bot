@@ -5,7 +5,8 @@ from datetime import datetime, timedelta
 import threading
 import time
 
-TOKEN = "TOKENINGNI_QOY"
+import os
+TOKEN = os.getenv("TOKEN")
 ADMIN_ID = 123456789
 
 bot = telebot.TeleBot(TOKEN)
