@@ -161,4 +161,4 @@ def weekly_report():
 threading.Thread(target=reminder).start()
 threading.Thread(target=weekly_report).start()
 
-bot.polling()
+bot.polling(none_stop=True)
