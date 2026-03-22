@@ -96,7 +96,6 @@ def start(message):
     uid = str(message.chat.id)
     user = get_user(uid)
     
-    # Start xabari
     welcome_text = (
         "Assalomu aleykum botimizga hush kelibsiz! "
         "Bu yerda 30 kunlik chellenge bo'ladi bot MBE useful tomonidna yaratilgan! "
@@ -145,7 +144,6 @@ def get_nick(message):
     user['info']['nickname'] = message.text
     user['step'] = 'main'
     
-    # ID yaratish
     public_id = f"ID_{random.randint(1000, 9999)}"
     user['info']['public_id'] = public_id
     
@@ -157,38 +155,64 @@ def get_nick(message):
         reply_markup=main_menu()
     )
 
-# --- REYTING (FORMAT O'ZGARTIRILDI) ---
+# --- TUGMALAR VA VAZIFALAR ---
+
+@bot.message_handler(func=lambda m: m.text == "Bugungi vazifalar ✅")
+def show_tasks(message):
+    uid = str(message.chat.id)
+    user = get_user(uid)
+    if user.get('step') != 'main': return
+    
+    markup = ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
+    for i, task in enumerate(DAILY_TASKS):
+        status = "✅" if i in user.get('completed_tasks', []) else "❌"
+        markup.add(KeyboardButton(f"{status} {task}"))
+    markup.add(KeyboardButton("Orqaga 🔙"))
+    bot.send_message(uid, "Vazifalarni bajarganingizdan keyin ustiga bosing:", reply_markup=markup)
+
+@bot.message_handler(func=lambda m: any(t in m.text for t in DAILY_TASKS))
+def mark_task(message):
+    uid = str(message.chat.id)
+    user = get_user(uid)
+    for i, task in enumerate(DAILY_TASKS):
+        if task in message.text:
+            if i not in user['completed_tasks']:
+                user['completed_tasks'].append(i)
+                user['daily_count'] += 1
+                user['total_score'] += 10
+                save_data()
+                bot.send_message(uid, f"Barakalla! +10 ball!")
+                show_tasks(message)
+            return
+
+@bot.message_handler(func=lambda m: m.text == "Natijalar jadvali 🏆")
+def results(message):
+    user = get_user(message.chat.id)
+    if not user['history']:
+        bot.send_message(message.chat.id, "Hali natijalar yo'q.")
+    else:
+        text = "📅 <b>Tarix:</b>\n" + "\n".join(user['history'])
+        bot.send_message(message.chat.id, text, parse_mode='HTML')
 
 @bot.message_handler(func=lambda m: m.text == "Reyting 📊")
-def show_rank(message):
-    # Ballar bo'yicha saralash
-    active_users = [u for u in user_data.values() if u.get('step') == 'main']
-    sorted_u = sorted(active_users, key=lambda x: x['total_score'], reverse=True)[:10]
-    
-    text = "🏆 <b>TOP 10 REYTING</b>\n\n"
-    for i, data in enumerate(sorted_u):
-        p_id = data['info'].get('public_id', 'ID_0000')
-        nick = data['info'].get('nickname', 'User')
-        score = data['total_score']
-        text += f"{i+1}. ({p_id} {nick}) — {score} ball\n"
-    
+def rank(message):
+    active = [u for u in user_data.values() if u.get('step') == 'main']
+    sorted_u = sorted(active, key=lambda x: x.get('total_score', 0), reverse=True)[:10]
+    text = "🏆 <b>TOP 10</b>\n\n"
+    for i, d in enumerate(sorted_u):
+        text += f"{i+1}. ({d['info'].get('public_id')} {d['info'].get('nickname')}) — {d['total_score']} ball\n"
     bot.send_message(message.chat.id, text, parse_mode='HTML')
 
-# --- QOLGAN FUNKSIYALAR (Finish, Tasks va h.k.) ---
-# ... (O'zgarishsiz qoladi)
-
 @bot.message_handler(func=lambda m: m.text == "Finish 🏁")
-def finish_day(message):
+def finish(message):
     user = get_user(message.chat.id)
     if user['daily_count'] == 0:
-        bot.send_message(message.chat.id, "Hech bo'lmasa bitta vazifa bajaring!")
+        bot.send_message(message.chat.id, "Kamida bitta vazifa bajaring!")
         return
-    percent = int((user['daily_count'] / len(DAILY_TASKS)) * 100)
-    user['history'].append(f"{datetime.now().strftime('%d/%m')} - {percent}%")
-    bot.send_animation(message.chat.id, random.choice(GIFS), caption=f"🏁 Natija: {percent}%\n\n{random.choice(MOTIVATIONS)}")
-    user['daily_count'] = 0
-    user['completed_tasks'] = []
+    p = int((user['daily_count']/len(DAILY_TASKS))*100)
+    user['history'].append(f"{datetime.now().strftime('%d/%m')} - {p}%")
+    bot.send_animation(message.chat.id, random.choice(GIFS), caption=f"Natija: {p}%")
+    user['daily_count'], user['completed_tasks'] = 0, []
     save_data()
 
-# --- POLLING ---
-bot.infinity_polling()
+@bot.message_handler(func=lambda m: m.text == "Orqaga 🔙")
