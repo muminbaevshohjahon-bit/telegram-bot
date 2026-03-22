@@ -1,30 +1,87 @@
 <!DOCTYPE html>
-<html>
+<html lang="uz">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MBE Useful - Chellenjlar</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { color: var(--tg-theme-text-color); background: var(--tg-theme-bg-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        .card { background: var(--tg-theme-secondary-bg-color); border-radius: 12px; padding: 15px; width: 90%; margin: 10px 0; text-align: center; }
-        .score { font-size: 32px; font-weight: bold; color: #0088cc; }
-        button { background: #0088cc; color: white; border: none; padding: 10px 20px; border-radius: 8px; width: 100%; margin-top: 20px; }
+        :root { --bg: #1c1c1e; --card: #2c2c2e; --accent: #34c759; --text: #ffffff; }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        .header { text-align: center; margin-bottom: 20px; }
+        
+        /* Bosh sahifa tugmalari */
+        .challenge-list { display: grid; gap: 15px; }
+        .challenge-card { background: var(--card); padding: 20px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border: 1px solid #3a3a3c; }
+        .challenge-card:active { transform: scale(0.98); }
+
+        /* Kalendar oynasi (Modal kabi) */
+        #calendarView { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); padding: 20px; box-sizing: border-box; overflow-y: auto; z-index: 10; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 20px; }
+        .day-box { aspect-ratio: 1; background: var(--card); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; border: 1px solid #3a3a3c; }
+        .day-box.done { background: var(--accent); color: black; border: none; }
+        
+        .back-btn { background: #3a3a3c; color: white; border: none; padding: 10px 20px; border-radius: 10px; margin-bottom: 20px; cursor: pointer; }
+        h2 { margin: 0; color: var(--accent); }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h3>Salom, <span id="username">Do'stim</span>!</h3>
-        <p>Sizning ID: <b id="user-id">---</b></p>
+
+    <div id="mainView">
+        <div class="header">
+            <h2 id="userHello">Salom!</h2>
+            <p>Vazifani tanlang va 30 kunlik yo'lni boshlang</p>
+        </div>
+        
+        <div class="challenge-list">
+            <div class="challenge-card" onclick="openCalendar('Kitob mutolasi 📚')">
+                <span>Kitob mutolasi 📚</span>
+                <span>➡️</span>
+            </div>
+            <div class="challenge-card" onclick="openCalendar('Jismoniy mashq 💪')">
+                <span>Jismoniy mashq 💪</span>
+                <span>➡️</span>
+            </div>
+            <div class="challenge-card" onclick="openCalendar('Sugar detox 🍬')">
+                <span>Sugar detox 🍬</span>
+                <span>➡️</span>
+            </div>
+            <div class="challenge-card" onclick="openCalendar('Gazsiz ichimliklar 🥤')">
+                <span>Gazsiz ichimliklar 🥤</span>
+                <span>➡️</span>
+            </div>
+        </div>
     </div>
-    <div class="card">
-        <p>Muvaffaqiyat ko'rsatkichi</p>
-        <div class="score">75%</div>
+
+    <div id="calendarView">
+        <button class="back-btn" onclick="closeCalendar()">⬅️ Orqaga</button>
+        <h2 id="calTitle">Vazifa nomi</h2>
+        <p>Kunlik natijani belgilash uchun katakni bosing:</p>
+        
+        <div class="calendar-grid" id="calendarGrid">
+            </div>
     </div>
-    <button onclick="Telegram.WebApp.close()">Botga qaytish</button>
+
     <script>
-        let tg = window.Telegram.WebApp;
+        const tg = window.Telegram.WebApp;
         tg.expand();
-        document.getElementById('username').innerText = tg.initDataUnsafe.user.first_name;
-        document.getElementById('user-id').innerText = tg.initDataUnsafe.user.id;
-    </script>
-</body>
-</html>
+
+        if (tg.initDataUnsafe.user) {
+            document.getElementById('userHello').innerText = "Salom, " + tg.initDataUnsafe.user.first_name + "!";
+        }
+
+        // Kalendarni ochish funksiyasi
+        function openCalendar(name) {
+            document.getElementById('mainView').style.display = 'none';
+            document.getElementById('calendarView').style.display = 'block';
+            document.getElementById('calTitle').innerText = name;
+            
+            const grid = document.getElementById('calendarGrid');
+            grid.innerHTML = ''; // Tozalash
+
+            for (let i = 1; i <= 30; i++) {
+                const day = document.createElement('div');
+                day.classList.add('day-box');
+                day.innerText = i;
+                
+                // Bosganda yashil
