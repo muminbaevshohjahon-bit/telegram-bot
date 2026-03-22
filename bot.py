@@ -116,7 +116,7 @@ def get_nick(message):
     public_id = f"MBE-{random.randint(10000, 99999)}"
     user['info']['public_id'] = public_id
     save_data()
-    bot.send_message(message.chat.id, f"Tabrikleyshn ro‘yxatdan o‘tdingiz! ID: <b>{public_id}</b>", parse_mode='HTML', reply_markup=main_menu())
+    bot.send_message(message.chat.id, f"Tabrikleyshn ro‘yxatdan o‘tdingiz! 🔥 ID: <b>{public_id}</b>", parse_mode='HTML', reply_markup=main_menu())
 
 # --- TASKS ---
 @bot.message_handler(func=lambda m: m.text == "Bugungi vazifalar ✅")
@@ -152,7 +152,7 @@ def finish_day(message):
     user['history'].append(f"{datetime.now().strftime('%d/%m')} - {percent}%")
     motivation = random.choice(MOTIVATIONS)
     gif = random.choice(GIFS)
-    bot.send_animation(message.chat.id, gif, caption=f"🏁 <b>Kun yakunlandi!</b>\nNatija: {percent}%\n\n<i>{motivation}</i>", parse_mode='HTML')
+    bot.send_animation(message.chat.id, gif, caption=f"🏁 <b>Kun yakunlandi!✊</b>\nNatija: {percent}%\n\n<i>{motivation}</i>", parse_mode='HTML')
     user['daily_count'] = 0
     user['completed_tasks'] = []
     save_data()
