@@ -111,14 +111,35 @@ def main_menu():
 def start(message):
     uid = str(message.chat.id)
     user = get_user(uid)
-# Yangi salomlashuv matni welcome_text = ( "<b>Assalomu alaykum, xush kelibsiz!</b>\n" "Men <b>MBE useful</b> tomonidan yaratilgan botman!\n\n" "Sizga 30 kunlik chellenj orqali intizom shakllantirishga yordam beraman!\n" "Balki foydasi tegar....\n\n" "<i>Keling, tanishib olaylik. Ismingizni kiriting:</i>"
+# --- REGISTRATION (TAYYOR VA TUZATILGAN VARIANT) ---
+@bot.message_handler(commands=['start'])
+def start(message):
+    uid = str(message.chat.id)
+    user = get_user(uid)
+    
+    # 1. Siz so'ragan formatlangan matn
+    welcome_text = (
+        "<b><i>Assalomu aleykum hush kelibsiz!</i></b>\n"
+        "<b><i>Men MBE useful tomonidan yaratilgan botman!</i></b>\n\n"
+        "<b><i>Maqsadimiz 30 kunlik chellenj davomida intizomni shakllantirish.</i></b>\n"
+        "<b><i>Balki foydasi tegar...</i></b>\n\n"
+        "Keling tanishib olaylik... Ismingizni kiriting:"
+    )
+    
+    # 2. Foydalanuvchi holatini yangilash
+    user['step'] = 'get_name'
+    save_data()
+    
+    # 3. Matnni foydalanuvchiga yuborish
+    bot.send_message(uid, welcome_text, parse_mode='HTML')
+
 @bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_name')
 def get_name(message):
     user = get_user(message.chat.id)
     user['info']['name'] = message.text
     user['step'] = 'get_birth'
     save_data()
-    bot.send_message(message.chat.id, "Tug‘ilgan yilingiz (2003):")
+    bot.send_message(message.chat.id, "Tug‘ilgan yilingiz (masalan, 2004):")
 
 @bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_birth')
 def get_birth(message):
@@ -152,8 +173,7 @@ def get_nick(message):
     public_id = f"MBE-{random.randint(10000, 99999)}"
     user['info']['public_id'] = public_id
     save_data()
-    bot.send_message(message.chat.id, f"Ro‘yxatdan o‘tdingiz! ID: <b>{public_id}</b>", parse_mode='HTML', reply_markup=main_menu())
-
+    bot.send_message(message.chat.id, f"Tabrikleyshn ro‘yxatdan o‘tdingiz! ID: <b>{public_id}</b>", parse_mode='HTML', reply_markup=main_menu())
 # --- TASKS ---
 @bot.message_handler(func=lambda m: m.text == "Bugungi vazifalar ✅")
 def show_tasks(message):
