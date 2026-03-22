@@ -7,7 +7,7 @@ import time
 from datetime import datetime
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
 
-# Vaqt zonasini to'g'rilash
+# Vaqt zonasi (O'zbekiston)
 os.environ['TZ'] = 'Asia/Tashkent'
 if hasattr(time, 'tzset'):
     time.tzset()
@@ -15,7 +15,7 @@ if hasattr(time, 'tzset'):
 TOKEN = os.getenv("TOKEN")
 bot = telebot.TeleBot(TOKEN)
 
-# --- DATA STORAGE ---
+# --- MA'LUMOTLARNI SAQLASH ---
 def load_data():
     if os.path.exists('users_db.json'):
         with open('users_db.json', 'r') as f:
@@ -30,11 +30,18 @@ def save_data():
 user_data = load_data()
 TOTAL_TASKS = 7
 
-# Motivatsiyalar (Bu yerga 100 ta motivatsiyani qo'shishingiz mumkin)
+# Motivatsiyalar
 CUSTOM_MOTIVATIONS = [
     "Sen boshlamasang, hech narsa boshlanmaydi. 🔥",
     "Bugungi og‘riq — ertangi kuch. 💪",
-    "Eng zo‘r vaqt — hozir. 🚀"
+    "Eng zo‘r vaqt — hozir. 🚀",
+    "Intizom — bu o'ziga berilgan va'dani bajarishdir. ✨"
+]
+
+FINISH_MOTIVATIONS = [
+    "Dahshat! Vapshe zo'r, barakalla! 🔥",
+    "Sen o'ylagandan ham kuchlisan, davom et! 💪",
+    "Intizom — bu o'zingga bo'lgan hurmat. Zo'r ketyapsan! 🌟"
         "Sen boshlamasang, hech narsa boshlanmaydi.", "Mukammallikni kutma — harakatni boshlash muhim.",
     "Bugungi og‘riq — ertangi kuch.", "Sen o‘ylagandan ham kuchlisan.",
     "Hech kim seni qutqarmaydi — o‘zingni o‘zing ko‘tar.", "Qiyinchilik — bu yashirin imkoniyat.",
@@ -84,19 +91,13 @@ CUSTOM_MOTIVATIONS = [
     "Har kuni yangi imkon.", "Sen hali eng yaxshisini ko‘rmading.",
     "O‘z yo‘lingni tanla va yur.", "Sen bunga qodirsan — ishon.",
     "Harakat qilgan odam yutadi.", "Qanchalik qiyin bo‘lsa — shunchalik qiymatli.",
-    "Sen hech qachon yolg‘iz emassan — o‘zing bor.","Qodirali boshla", "Boshlagin. Hozir. Shu yerda."
+    "Sen hech qachon yolg‘iz emassan — o‘zing bor.", "Boshlagin. Hozir. Shu yerda."
 ]
 
-
-FINISH_MOTIVATIONS = [
-    "Dahshat! Vapshe zo'r, barakalla! 🔥",
-    "Sen o'ylagandan ham kuchlisan, davom et! 💪",
-    "Intizom — bu o'zingga bo'lgan hurmat. Zo'r ketyapsan! 🌟"
-]
 
 GIFS = ["https://media.giphy.com/media/FACfMgP1N9mlG/giphy.gif"]
 
-# --- HELPERS ---
+# --- YORDAMCHI FUNKSIYALAR ---
 def get_user(uid):
     uid = str(uid)
     if uid not in user_data:
@@ -113,7 +114,7 @@ def main_menu():
     markup.add(KeyboardButton("Peshqadamlar 🏆"), KeyboardButton("Finish 🏁"))
     return markup
 
-# --- REGISTRATION PROCESS ---
+# --- RO'YXATDAN O'TISH BOSQICHLARI ---
 @bot.message_handler(commands=['start'])
 def start(message):
     user = get_user(message.chat.id)
@@ -155,7 +156,7 @@ def get_month(message):
 def get_day(message):
     user = get_user(message.chat.id)
     user['info']['birth_day'] = message.text
-    user['info']['nickname'] = user['info']['name'] # Ismini nickname sifatida saqlaymiz
+    user['info']['nickname'] = user['info']['name']
     user['step'] = 'main'
     save_data()
     bot.send_message(
@@ -165,7 +166,7 @@ def get_day(message):
         reply_markup=main_menu()
     )
 
-# --- BOT LOGIC ---
+# --- BOT FUNKSIYALARI ---
 @bot.message_handler(content_types=['web_app_data'])
 def web_app_receive(message):
     data = json.loads(message.web_app_data.data)
@@ -187,4 +188,37 @@ def leaderboard(message):
         text += f"{i+1}. {name} — {data.get('total_score', 0)} ball\n"
     bot.send_message(message.chat.id, text, parse_mode='HTML')
 
-@bot.message_handler(func=)
+@bot.message_handler(func=lambda m: m.text == "Finish 🏁")
+def finish_day(message):
+    user = get_user(message.chat.id)
+    today = datetime.now().strftime('%d/%m')
+    
+    if any(today in entry for entry in user['history']):
+        bot.send_message(message.chat.id, "Bugun uchun vazifalar yakunlangan. ✨")
+        return
+
+    percent = int((len(user['completed_today']) / TOTAL_TASKS) * 100)
+    user['history'].append(f"{today}: {percent}%")
+    user['completed_today'] = []
+    save_data()
+    
+    msg = f"🏁 <b>Natija: {percent}%</b>\n\n{random.choice(FINISH_MOTIVATIONS)}"
+    bot.send_animation(message.chat.id, random.choice(GIFS), caption=msg, parse_mode='HTML')
+
+# --- AVTOMATIK ESLATMALAR ---
+def scheduler():
+    while True:
+        now = datetime.now().strftime("%H:%M")
+        if now in ["09:00", "14:00", "19:00"]:
+            for uid in list(user_data.keys()):
+                try: 
+                    bot.send_message(uid, f"💡 <b>Eslatma:</b>\n\n{random.choice(CUSTOM_MOTIVATIONS)}")
+                except: 
+                    continue
+        time.sleep(60)
+
+threading.Thread(target=scheduler, daemon=True).start()
+
+# Botni ishga tushirish
+if __name__ == "__main__":
+    bot.infinity_polling()
