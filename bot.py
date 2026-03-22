@@ -111,10 +111,7 @@ def main_menu():
 def start(message):
     uid = str(message.chat.id)
     user = get_user(uid)
-    user['step'] = 'get_name'
-    save_data()
-    bot.send_message(uid, "<b>Assalomu alaykum!</b>\nIsmingizni kiriting:", parse_mode='HTML')
-
+# Yangi salomlashuv matni welcome_text = ( "<b>Assalomu alaykum, xush kelibsiz!</b>\n" "Men <b>MBE useful</b> tomonidan yaratilgan botman!\n\n" "Sizga 30 kunlik chellenj orqali intizom shakllantirishga yordam beraman!\n" "Balki foydasi tegar....\n\n" "<i>Keling, tanishib olaylik. Ismingizni kiriting:</i>"
 @bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_name')
 def get_name(message):
     user = get_user(message.chat.id)
@@ -239,3 +236,4 @@ threading.Thread(target=reminder_loop, daemon=True).start()
 
 # --- RUN ---
 bot.infinity_polling()
+
