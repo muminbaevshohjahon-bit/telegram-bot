@@ -7,65 +7,58 @@ from apscheduler.schedulers.background import BackgroundScheduler
 TOKEN = os.getenv("TOKEN")
 bot = telebot.TeleBot(TOKEN)
 
-# Ma'lumotlarni saqlash
-user_data = {}
+# Foydalanuvchilar ro'yxati
+users_list = set()
 
-# 100 ta Motivatsiya (Qisqartirilgan, hammasini joylang)
+# 1. 100 TA MOTIVATSIYA (To'liq ro'yxat)
 MOTIVATIONS = [
     "Sen boshlamasang, hech narsa boshlanmaydi.", "Mukammallikni kutma — harakatni boshlash muhim.",
     "Bugungi og‘riq — ertangi kuch.", "Sen o‘ylagandan ham kuchlisan.",
     "Hech kim seni qutqarmaydi — o‘zingni o‘zing ko‘tar.", "Qiyinchilik — bu yashirin imkoniyat.",
     "Orzular faqat harakat bilan haqiqatga aylanadi.", "Qo‘rqish — o‘sish boshlanishidir.",
     "Har kuni kichik qadam — katta natija.", "Sen taslim bo‘lmaguningcha, yutqazmading.",
-    # ... qolgan 90 tasi ham shu ro'yxatda bo'lsin
-    "Boshlagin. Hozir. Shu yerda."
-]
-
-GIFS = [
-    "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExeTVrZWJ3cWU2MDgzbTV3NGk5NWtocnNwdGJvd2cxMnJwMTRtN2RhYSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/3oEduUGL2JaSK7oS76/giphy.gif",
-    "https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3eW1hbnAyazN6OTRqa2R5ZHYyb250eHI4aW5zODFzZm0zOGFpOGt0NyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/ahDOY7XwxjNXW/giphy.gif",
-    "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOTVkZ3hueXBnNjkwZ2J1YjJkN2gwMHN3b3M3aXZ0cnRvMDFpbHdkZyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/FACfMgP1N9mlG/giphy.gif",
-    "https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3ZTc5MnQxOTdhY3dnMWpuNXFmdzJ0dnR1Z29hMGV4cnVnaXp1YmtqbiZlcD12MV9naWZzX3NlYXJjaCZjdD1n/IHETYBuNarfOwyDBrY/giphy.gif"
-]
-
-CONGRATS = ["Biz kutgandik!", "Porloq kelajak seni qo'lingda!", "Sen bilan faxrlanaman!", "Malades!"]
-
-# Ro'yxatdan o'tish bosqichlari
-@bot.message_handler(commands=['start'])
-def start_reg(message):
-    bot.send_message(message.chat.id, "Assalomu alaykum! Ro'yxatdan o'tishni boshlaymiz. Ismingiz nima?")
-    bot.register_next_step_handler(message, get_name)
-
-def get_name(message):
-    user_data[message.chat.id] = {'name': message.text}
-    bot.send_message(message.chat.id, "Tug'ilgan yilingizni kiriting (masalan: 2004):")
-    bot.register_next_step_handler(message, get_year)
-
-def get_year(message):
-    user_data[message.chat.id]['year'] = message.text
-    bot.send_message(message.chat.id, "Nickname-ingizni kiriting:")
-    bot.register_next_step_handler(message, finish_reg)
-
-def finish_reg(message):
-    user_data[message.chat.id]['nick'] = message.text
-    name = user_data[message.chat.id]['name']
-    
-    welcome_msg = (
-        f"Assalomu alaykum {name}! <b>30 kunlik challenge'ga xush kelibsiz!</b> 🔥\n\n"
-        "Har kuni vazifalarni bajaring va o'z ustingizda ishlang.\n"
-        "Bu bot <b>MBE Useful</b> tomonidan yaratilgan. Foydasi tegsa xursandmiz!"
-    )
-    
-    markup = ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
-    markup.add(KeyboardButton("Bugungi vazifalar ✅"), KeyboardButton("Natijalar jadvali 🏆"), KeyboardButton("Finish 🏁"))
-    
-    bot.send_message(message.chat.id, welcome_text, parse_mode='HTML', reply_markup=markup)
-
-# Vazifa bajarilganda
-@bot.message_handler(func=lambda m: "✅" in m.text)
-def handle_done(message):
-    congrat = random.choice(CONGRATS)
-    gif = random.choice(GIFS)
-    bot.send_animation(message.chat.id, gif, caption=congrat)
-
-bot.infinity_polling()
+    "Eng katta raqibing — kechagi o‘zing.", "Bahonalar seni orqaga tortadi.",
+    "Harakat — motivatsiyadan muhimroq.", "Vaqt ketmoqda — senchi?",
+    "Sen bunga loyiqsan — lekin ishlashing kerak.", "Og‘ir bo‘lsa ham davom et.",
+    "O‘zgarish og‘riqli, lekin zarur.", "Qanchalik qiynalsang, shunchalik kuchli bo‘lasan.",
+    "Natija sabrni yaxshi ko‘radi.", "Bugun qilmaganing — ertaga pushaymon bo‘ladi.",
+    "Sen o‘zingning hayoting uchun javobgarsan.", "Kichik boshlashdan uyalmagin.",
+    "Har kuni o‘zingni yeng.", "Kuch — ichingda. Uni uyg‘ot.",
+    "Taslim bo‘lish — eng oson yo‘l.", "Eng yaxshi vaqt — hozir.",
+    "Qancha ko‘p harakat, shuncha kam pushaymon.", "Qiyinchilik seni sinaydi, sindirmaydi.",
+    "Yutuq — intizom natijasi.", "Orzularing seni kutmaydi.",
+    "Qo‘rquv ortida — erkinlik bor.", "Hech kim senga majbur emas — o‘zingni isbotla.",
+    "Harakat qil, hatto mukammal bo‘lmasa ham.", "Yiqildingmi? Tur va davom et.",
+    "Sen hali boshlamading ham.", "Qanchalik ko‘p urinma, shunchalik yaqinlashasan.",
+    "Og‘riq vaqtinchalik — natija abadiy.", "Bugungi mehnat — ertangi faxr.",
+    "Sen o‘zingning hayoting uchun javobgarsan.", "Kuchli bo‘lish — tanlov.",
+    "Intizom — erkinlik kaliti.", "Qachon qiyin bo‘lsa — o‘sha payt o‘sasan.",
+    "Orqaga emas, oldinga qaragin.", "Hech kim mukammal emas — lekin harakat qilayotganlar yutadi.",
+    "O‘z ustingda ishlash — eng yaxshi investitsiya.", "Sen bunga qodirsan.",
+    "Kech emas — hali vaqt bor.", "Boshlash — yarim g‘alaba.",
+    "Kuchli odamlar bahona qilmaydi.", "Har kuni yangi imkoniyat.",
+    "Sen taslim bo‘lsang — hammasi tugaydi.", "Sen davom etsang — hammasi boshlanadi.",
+    "O‘z yo‘lingni o‘zing yarat.", "Orzularing seni chaqiryapti.",
+    "Qadam tashla — yo‘l ochiladi.", "O‘zinga ishongan odam yutadi.",
+    "Harakat qil, hatto sekin bo‘lsa ham.", "Katta natija — kichik odatlardan boshlanadi.",
+    "Sabrsizlar yutqazadi.", "Qiyinchilik — vaqtinchalik mehmon.",
+    "Sen o‘zingni kashf qilmagansan hali.", "Har kuni o‘z ustingda ishlagin.",
+    "Yutuq — chidamlilik mevasidir.", "Sen o‘zingni cheklayapsan.",
+    "O‘zingga imkon ber.", "Eng katta tavakkal — urinmaslik.",
+    "Qo‘rquv seni to‘xtatmasin.", "Sen o‘zingni o‘zgartira olasan.",
+    "Bugun boshlagan odam ertaga yutadi.", "Hech qachon kech emas.",
+    "Harakat qil — natija keladi.", "Sen kuchsiz emassan — charchagansan xolos.",
+    "Dam ol, lekin taslim bo‘lma.", "Har kuni 1% yaxshilan.",
+    "Qanchalik qiynalsang, shunchalik qadrlaysan.", "Sen bunga arziysan.",
+    "O‘z hayotingni o‘zgartir.", "Yutuq oson kelmaydi.",
+    "Harakat qilmaslik — eng katta xato.", "Sen o‘zingni sinab ko‘r.",
+    "Orzular — jasurlarga tegishli.", "Sen hali imkoniyatlaringni ishlatmading.",
+    "O‘zingga sodiq bo‘l.", "Qiyin yo‘l — to‘g‘ri yo‘l bo‘lishi mumkin.",
+    "Taslim bo‘lish — variant emas.", "Sen yutishga yaratilgansan.",
+    "Harakat qil — sharoit o‘zgaradi.", "Sen boshlagan ishni tugat.",
+    "Eng zo‘r vaqt — hozir.", "O‘zgarish sendan boshlanadi.",
+    "Sen kuchli bo‘lishni tanla.", "O‘zingni o‘zing motivatsiya qil.",
+    "Har kuni yangi imkon.", "Sen hali eng yaxshisini ko‘rmading.",
+    "O‘z yo‘lingni tanla va yur.", "Sen bunga qodirsan — ishon.",
+    "Harakat qilgan odam yutadi.", "Qanchalik qiyin bo‘lsa — shunchalik qiymatli.",
+    "Sen
