@@ -6,13 +6,17 @@ import threading
 import time
 import os
 
-# Sozlamalar
+# SOZLAMALAR
 TOKEN = os.getenv("TOKEN")
 ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))
 bot = telebot.TeleBot(TOKEN)
 
-# Ma'lumotlar bazasi
-conn = sqlite3.connect("challenge.db", check_same_thread=False)
+# BAZA BILAN ISHLASH
+def get_db_connection():
+    conn = sqlite3.connect("challenge.db", check_same_thread=False)
+    return conn
+
+conn = get_db_connection()
 cursor = conn.cursor()
 
 cursor.execute("""
@@ -45,7 +49,7 @@ def start(message):
 
 def get_name(message):
     user_states[message.from_user.id] = {'full_name': message.text}
-    bot.send_message(message.chat.id, "Tug'ilgan sanangizni kiriting (kun.oy.yil, masalan: 15.05.2004):")
+    bot.send_message(message.chat.id, "Tug'ilgan sanangizni kiriting (kun.oy.yil, masalan: 15.03.2004):")
     bot.register_next_step_handler(message, get_date)
 
 def get_date(message):
@@ -56,24 +60,21 @@ def get_date(message):
 def get_nickname(message):
     uid = message.from_user.id
     nick = message.text
-    data = user_states[uid]
-    cursor.execute("INSERT INTO users (user_id, full_name, birth_date, nickname) VALUES (?, ?, ?, ?)",
-                   (uid, data['full_name'], data['birth_date'], nick))
-    conn.commit()
-    bot.send_message(message.chat.id, "Tabriklaymiz! Muvaffaqiyatli ro'yxatdan o'tdingiz! 🚀")
-    main_menu(message)
+    data = user_states.get(uid)
+    if data:
+        cursor.execute("INSERT INTO users (user_id, full_name, birth_date, nickname) VALUES (?, ?, ?, ?)",
+                       (uid, data['full_name'], data['birth_date'], nick))
+        conn.commit()
+        bot.send_message(message.chat.id, "Muvaffaqiyatli ro'yxatdan o'tdingiz! 🚀")
+        main_menu(message)
 
 def main_menu(message):
     markup = ReplyKeyboardMarkup(resize_keyboard=True)
-    markup.add(KeyboardButton("Bugungi vazifalar ✅"))
-    markup.add(KeyboardButton("Leaderboard 🏆"))
+    markup.add(KeyboardButton("Bugungi vazifalar ✅"), KeyboardButton("Leaderboard 🏆"))
     bot.send_message(message.chat.id, "Asosiy menyu:", reply_markup=markup)
 
 @bot.message_handler(func=lambda m: m.text == "Bugungi vazifalar ✅")
 def show_tasks(message):
-    if datetime.now().hour >= 23:
-        bot.send_message(message.chat.id, "Bugun uchun qabul yopilgan (23:00).")
-        return
     markup = ReplyKeyboardMarkup(resize_keyboard=True)
     for t in CHALLENGES: markup.add(KeyboardButton(t))
     markup.add(KeyboardButton("Finish 🏁"))
@@ -92,14 +93,49 @@ def finish(message):
     completed = len(user_tasks.get(uid, []))
     points_to_add = completed * 10
     
-    # Quvib o'tishni tekshirish (Ball qo'shishdan oldin kimdan o'tayotganini ko'rish)
-    cursor.execute("SELECT nickname, points FROM users WHERE user_id != ? AND points > ? ORDER BY points ASC LIMIT 1", 
-                   (uid, points_to_add))
+    # Quvib o'tish motivatsiyasi
+    cursor.execute("SELECT nickname FROM users WHERE user_id != ? AND points > (SELECT points FROM users WHERE user_id = ?) ORDER BY points ASC LIMIT 1", (uid, uid))
     target = cursor.fetchone()
 
     cursor.execute("UPDATE users SET points = points + ? WHERE user_id = ?", (points_to_add, uid))
     conn.commit()
     
-    # Motivatsiya yuborish
+    msg = f"Bugun {points_to_add} ball to'pladingiz! 🔥"
     if target:
-        bot.send_message(uid, f"🔥 Zo'r! Siz
+        msg += f"\n\nSizga {target[0]} dan o'tib ketishingizga oz qoldi! Bo'shashmang! 💪"
+
+    bot.send_message(uid, msg)
+    user_tasks[uid] = set()
+    main_menu(message)
+
+@bot.message_handler(func=lambda m: m.text == "Leaderboard 🏆")
+def leaderboard(message):
+    uid = message.from_user.id
+    cursor.execute("SELECT user_id, nickname, points, full_name FROM users ORDER BY points DESC")
+    users = cursor.fetchall()
+    
+    text = "🏆 LEADERBOARD:\n\n"
+    for i, u in enumerate(users, 1):
+        if uid == ADMIN_ID:
+            # SIZ UCHUN: To'liq ismlar ko'rinadi
+            text += f"{i}. {u[3]} (@{u[1]}) — {u[2]} ball\n"
+        else:
+            # QATNASHCHILAR UCHUN: Nickname va ID ko'rinadi
+            text += f"{i}. {u[1]} (ID: {str(u[0])[:4]}***) — {u[2]} ball\n"
+    
+    bot.send_message(message.chat.id, text)
+
+# Eslatmalar
+def scheduler():
+    while True:
+        t = datetime.now().strftime("%H:%M")
+        if t in ["07:00", "13:00", "21:00"]:
+            cursor.execute("SELECT user_id FROM users")
+            for r in cursor.fetchall():
+                try: bot.send_message(r[0], "Vazifalarni bajarishni unutmang! 🚀")
+                except: pass
+            time.sleep(60)
+        time.sleep(30)
+
+threading.Thread(target=scheduler, daemon=True).start()
+bot.polling(none_stop=True)
