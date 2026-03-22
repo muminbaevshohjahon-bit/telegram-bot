@@ -143,21 +143,18 @@ def reminder():
 def weekly_report():
     while True:
         now = datetime.now()
-
         # Yakshanba 21:00
         if now.weekday() == 6 and now.strftime("%H:%M") == "21:00":
             cursor.execute("SELECT username, COUNT(*) FROM users GROUP BY username")
             data = cursor.fetchall()
-
-           result = cursor.execute("SELECT task_text FROM daily_tasks WHERE day_id = ?", (day_id,)).fetchone()
-if result:
-    task = result[0]
-else:
-    task = "Bugun uchun vazifa belgilanmagan."
+            
+            text = "📊 Haftalik report:\n"
             for d in data:
                 text += f"@{d[0]} — {d[1]} kun faol\n"
-
+            
             bot.send_message(ADMIN_ID, text)
+            time.sleep(60)
+        time.sleep(30)
             time.sleep(60)
 
         time.sleep(30)
