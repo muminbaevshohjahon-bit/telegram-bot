@@ -149,7 +149,11 @@ def weekly_report():
             cursor.execute("SELECT username, COUNT(*) FROM users GROUP BY username")
             data = cursor.fetchall()
 
-            text = "📊 Haftalik report:\n"
+           result = cursor.execute("SELECT task_text FROM daily_tasks WHERE day_id = ?", (day_id,)).fetchone()
+if result:
+    task = result[0]
+else:
+    task = "Bugun uchun vazifa belgilanmagan."
             for d in data:
                 text += f"@{d[0]} — {d[1]} kun faol\n"
 
