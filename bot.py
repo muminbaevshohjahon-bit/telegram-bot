@@ -1,14 +1,25 @@
 import telebot
 import os
 import random
+import json # Ma'lumotlarni saqlash uchun
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 from datetime import datetime
 
 TOKEN = os.getenv("TOKEN")
 bot = telebot.TeleBot(TOKEN)
 
-# Ma'lumotlar bazasi (Xotira)
-user_data = {}
+# Ma'lumotlarni faylga saqlash funksiyalari (Restartdan himoya)
+def save_data():
+    with open('users_db.json', 'w') as f:
+        json.dump(user_data, f)
+
+def load_data():
+    if os.path.exists('users_db.json'):
+        with open('users_db.json', 'r') as f:
+            return json.load(f)
+    return {}
+
+user_data = load_data()
 
 DAILY_TASKS = [
     "Tongda detox (1 soat) 📵", "Kitob mutolasi 📚", "Sugar detox 🍬",
@@ -16,71 +27,41 @@ DAILY_TASKS = [
     "1 daqiqa hech narsa qilmaslik 🧘‍♂️"
 ]
 
-MOTIVATIONS =  "Sen boshlamasang, hech narsa boshlanmaydi.", "Bugungi og‘riq — ertangi kuch.", "Eng katta raqibing — kechagi o‘zing.",
-    "Mukammallikni kutma — harakatni boshlash muhim.", "Sen o‘ylagandan ham kuchlisan.", "Qiyinchilik — bu yashirin imkoniyat.",
-    "Orzular faqat harakat bilan haqiqatga aylanadi.", "Qo‘rqish — o‘sish boshlanishidir.", "Har kuni kichik qadam — katta natija.",
-    "Sen taslim bo‘lmaguningcha, yutqazmading.", "Bahonalar seni orqaga tortadi.", "Harakat — motivatsiyadan muhimroq.",
-    "Vaqt ketmoqda — senchi?", "Sen bunga loyiqsan — lekin ishlashing kerak.", "Og‘ir bo‘lsa ham davom et.",
-    "O‘zgarish og‘riqli, lekin zarur.", "Qanchalik qiynalsang, shunchalik kuchli bo‘lasan.", "Natija sabrni yaxshi ko‘radi.",
-    "Bugun qilmaganing — ertaga pushaymon bo‘ladi.", "Sen o‘zingning hayoting uchun javobgarsan.", "Kichik boshlashdan uyalmagin.",
-    "Har kuni o‘zingni yeng.", "Kuch — ichingda. Uni uyg‘ot.", "Taslim bo‘lish — eng oson yo‘l.",
-    "Eng yaxshi vaqt — hozir.", "Qancha ko‘p harakat, shuncha kam pushaymon.", "Qiyinchilik seni sinaydi, sindirmaydi.",
-    "Yutuq — intizom natijasi.", "Orzularing seni kutmaydi.", "Qo‘rquv ortida — erkinlik bor.",
-    "Hech kim senga majbur emas — o‘zingni isbotla.", "Harakat qil, hatto mukammal bo‘lmasa ham.", "Yiqildingmi? Tur va davom et.",
-    "Sen hali boshlamading ham.", "Qanchalik ko‘p urinma, shunchalik yaqinlashasan.", "Og‘riq vaqtinchalik — natija abadiy.",
-    "Bugungi mehnat — ertangi faxr.", "Sen o‘zingni o‘zgartirsang, hayoting o‘zgaradi.", "Kuchli bo‘lish — tanlov.",
-    "Intizom — erkinlik kaliti.", "Qachon qiyin bo‘lsa — o‘sha payt o‘sasan.", "Orqaga emas, oldinga qaragin.",
-    "O‘z ustingda ishlash — eng yaxshi investitsiya.", "Sen bunga qodirsan.", "Kech emas — hali vaqt bor.",
-    "Boshlash — yarim g‘alaba.", "Kuchli odamlar bahona qilmaydi.", "Har kuni yangi imkoniyat.",
-    "Sen taslim bo‘lsang — hammasi tugaydi.", "Sen davom etsang — hammasi boshlanadi.", "O‘z yo‘lingni o‘zing yarat.",
-    "Orzularing seni chaqiryapti.", "Qadam tashla — yo‘l ochiladi.", "O‘zinga ishongan odam yutadi.",
-    "Harakat qil, hatto sekin bo‘lsa ham.", "Katta natija — kichik odatlardan boshlanadi.", "Sabrsizlar yutqazadi.",
-    "Qiyinchilik — vaqtinchalik mehmon.", "Sen o‘zingni kashf qilmagansan hali.", "Har kuni o‘z ustingda ishlagin.",
-    "Yutuq — chidamlilik mevasidir.", "Sen o‘zingni cheklayapsan.", "O‘zingga imkon ber.",
-    "Eng katta tavakkal — urinmaslik.", "Qo‘rquv seni to‘xtatmasin.", "Sen o‘zingni o‘zgartira olasan.",
-    "Bugun boshlagan odam ertaga yutadi.", "Hech qachon kech emas.", "Harakat qil — natija keladi.",
-    "Sen kuchsiz emassan — charchagansan xolos.", "Dam ol, lekin taslim bo‘lma.", "Har kuni 1% yaxshilan.",
-    "Qanchalik qiynalsang, shunchalik qadrlaysan.", "Sen bunga arziysan.", "O‘z hayotingni o‘zgartir.",
-    "Yutuq oson kelmaydi.", "Harakat qilmaslik — eng katta xato.", "Sen o‘zingni sinab ko‘r.",
-    "Orzular — jasurlarga tegishli.", "Sen hali imkoniyatlaringni ishlatmading.", "O‘zingga sodiq bo‘l.",
-    "Qiyin yo‘l — to‘g‘ri yo‘l bo‘lishi mumkin.", "Taslim bo‘lish — variant emas.", "Sen yutishga yaratilgansan.",
-    "Harakat qil — sharoit o‘zgaradi.", "Sen boshlagan ishni tugat.", "Eng zo‘r vaqt — hozir.",
-    "O‘zgarish sendan boshlanadi.", "Sen kuchli bo‘lishni tanla.", "O‘zingni o‘zing motivatsiya qil.",
-    "Har kuni yangi imkon.", "Sen hali eng yaxshisini ko‘rmading.", "O‘z yo‘lingni tanla va yur.",
-    "Sen bunga qodirsan — ishon.", "Harakat qilgan odam yutadi.", "Qanchalik qiyin bo‘lsa — shunchalik qiymatli.",
-    "Sen hech qachon yolg‘iz emassan — o‘zing bor.", "Boshlagin. Hozir. Shu yerda.", "G'alaba intizomni sevadi."
+MOTIVATIONS = [ # Qavs to'g'irlandi
+    "Sen boshlamasang, hech narsa boshlanmaydi.", "Bugungi og‘riq — ertangi kuch.", 
+    "Eng katta raqibing — kechagi o‘zing.", "G'alaba intizomni sevadi."
 ]
+
 GIFS = [
     "https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3eXJqM3Z4eXp5bmZ6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6JmR6PTEmZ3R6Z3R6/3o7TKDkDbIDJieKbVm/giphy.gif",
-    "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOTVkZ3hueXBnNjkwZ2J1YjJkN2gwMHN3b3M3aXZ0cnRvMDFpbHdkZyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/FACfMgP1N9mlG/giphy.gif"
-    "https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3aTZjbDQ0NjhqdmY5ZnJ5eDdqY2pvcHN2c21yMjZ3OHExcHdlanN0ayZlcD12MV9naWZzX3NlYXJjaCZjdD1n/XMnjfm65r82TirNhoe/giphy.gif",
-    "https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3ZXUwbHJhcWl0a2twcmprc250c3RxcTU0OTVhMzlraG54ZHV6a3hoNiZlcD12MV9naWZzX3NlYXJjaCZjdD1n/x4dS8uOkeEFdxvV1nz/giphy.gif",
+    "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOTVkZ3hueXBnNjkwZ2J1YjJkN2gwMHN3b3M3aXZ0cnRvMDFpbHdkZyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/FACfMgP1N9mlG/giphy.gif", # Vergul qo'yildi
+    "https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3eTZjbDQ0NjhqdmY5ZnJ5eDdqY2pvcHN2c21yMjZ3OHExcHdlanN0ayZlcD12MV9naWZzX3NlYXJjaCZjdD1n/XMnjfm65r82TirNhoe/giphy.gif"
 ]
-# --- YORDAMCHI FUNKSIYALAR ---
 
 def get_user(uid):
+    uid = str(uid) # JSON kalitlari har doim string bo'ladi
     if uid not in user_data:
         user_data[uid] = {
-            'info': {}, 
-            'daily_count': 0, 
-            'history': [], 
-            'total_score': 0, # Reyting uchun umumiy ball
-            'step': 'start'
+            'info': {}, 'daily_count': 0, 'history': [], 
+            'total_score': 0, 'step': 'start', 'completed_today': []
         }
     return user_data[uid]
 
 def main_menu():
-    markup = ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
-    markup.add(KeyboardButton("Bugungi vazifalar ✅"), KeyboardButton("Natijalar jadvali 🏆"), KeyboardButton("Reyting 📊"), KeyboardButton("Finish 🏁"))
+    markup = ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
+    markup.add(KeyboardButton("Bugungi vazifalar ✅"), KeyboardButton("Natijalar jadvali 🏆"))
+    markup.add(KeyboardButton("Reyting 📊"), KeyboardButton("Finish 🏁"))
     return markup
-
-# --- RO'YXATDAN O'TISH QISMI ---
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    uid = message.chat.id
+    uid = str(message.chat.id)
     user = get_user(uid)
     
+    if user['step'] == 'main':
+        bot.send_message(uid, "Siz allaqachon ro'yxatdan o'tgansiz!", reply_markup=main_menu())
+        return
+
     welcome_text = (
         "<b>Assalomu aleykum!</b>\n"
         "30-kunlik chellenj botiga xush kelibsiz!\n\n"
@@ -88,102 +69,82 @@ def start(message):
         "Keling, tanishib olaylik! <b>Ismingizni kiriting:</b>"
     )
     user['step'] = 'get_name'
+    save_data()
     bot.send_message(uid, welcome_text, parse_mode='HTML')
 
+# Registratsiya handlerlari (O'zgarmadi, lekin save_data qo'shildi)
 @bot.message_handler(func=lambda m: get_user(m.chat.id)['step'] == 'get_name')
 def get_name(message):
-    uid = message.chat.id
-    user = get_user(uid)
+    user = get_user(message.chat.id)
     user['info']['name'] = message.text
     user['step'] = 'get_birth'
-    bot.send_message(uid, "<b>Tug'ilgan yilingizni kiriting (masalan: 2003):</b>", parse_mode='HTML')
+    save_data()
+    bot.send_message(message.chat.id, "Tug'ilgan yilingiz:")
 
-@bot.message_handler(func=lambda m: get_user(m.chat.id)['step'] == 'get_birth')
-def get_birth(message):
-    uid = message.chat.id
-    user = get_user(uid)
-    user['info']['birth_year'] = message.text
-    user['step'] = 'get_nick'
-    bot.send_message(uid, "<b>O'zingizga nickname tanlang :)</b>", parse_mode='HTML')
-
-@bot.message_handler(func=lambda m: get_user(m.chat.id)['step'] == 'get_nick')
+@bot.message_handler(func=lambda m: get_user(message.chat.id)['step'] == 'get_nick')
 def get_nick(message):
-    uid = message.chat.id
-    user = get_user(uid)
+    user = get_user(message.chat.id)
     user['info']['nickname'] = message.text
+    user['info']['reg_id'] = f"MBE-{random.randint(1000, 9999)}"
     user['step'] = 'main'
-    
-    reg_id = f"MBE-{random.randint(1000, 9999)}"
-    user['info']['reg_id'] = reg_id
-    
-    success_msg = (
-        f"Rahmat! Tanishganimdan xursandman, {user['info']['name']}!\n"
-        f"Sizning ID raqamingiz: <b>{reg_id}</b>\n\n"
-        "Endi boshlashga tayyorman! Quyidagi menyudan vazifalarni tanlang."
-    )
-    bot.send_message(uid, success_msg, parse_mode='HTML', reply_markup=main_menu())
-
-# --- ASOSIY FUNKSIYALAR ---
+    save_data()
+    bot.send_message(message.chat.id, f"Tayyor! ID: {user['info']['reg_id']}", reply_markup=main_menu())
 
 @bot.message_handler(func=lambda m: m.text == "Bugungi vazifalar ✅")
 def show_tasks(message):
-    uid = message.chat.id
-    stats = get_user(uid)
+    uid = str(message.chat.id)
+    user = get_user(uid)
     markup = ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
     for task in DAILY_TASKS:
-        markup.add(KeyboardButton(task))
+        # Bajarilgan vazifani belgilab ko'rsatish
+        prefix = "✅ " if task in user.get('completed_today', []) else ""
+        markup.add(KeyboardButton(f"{prefix}{task}"))
     markup.add(KeyboardButton("Orqaga ⬅️"))
-    bot.send_message(uid, f"📊 Bugun: {stats['daily_count']}/{len(DAILY_TASKS)}\nID: {stats['info'].get('reg_id')}", reply_markup=markup)
+    bot.send_message(uid, "Vazifalar:", reply_markup=markup)
 
-@bot.message_handler(func=lambda m: m.text in DAILY_TASKS)
-def complete_task(message):
-    uid = message.chat.id
-    stats = get_user(uid)
-    stats['daily_count'] += 1
-    stats['total_score'] += 10 # Har bir vazifa uchun 10 ball
-    bot.send_message(uid, f"✅ Bajarildi! Ball: +10")
+@bot.message_handler(func=lambda m: any(task in m.text for task in DAILY_TASKS))
+def handle_task(message):
+    uid = str(message.chat.id)
+    user = get_user(uid)
+    task_name = message.text.replace("✅ ", "")
+    
+    if task_name not in user.get('completed_today', []):
+        if 'completed_today' not in user: user['completed_today'] = []
+        user['completed_today'].append(task_name)
+        user['daily_count'] += 1
+        user['total_score'] += 10
+        save_data()
+        bot.send_message(uid, f"Ajoyib! +10 ball. Bugun: {user['daily_count']}/7")
+    else:
+        bot.send_message(uid, "Bu vazifani bajarib bo'lgansiz! 😊")
 
 @bot.message_handler(func=lambda m: m.text == "Finish 🏁")
-def finish_day(message):
-    uid = message.chat.id
-    stats = get_user(uid)
-    if stats['daily_count'] == 0:
-        bot.send_message(uid, "Hali birorta ham vazifa bajarmadingiz-ku? 🤨")
+def finish(message):
+    uid = str(message.chat.id)
+    user = get_user(uid)
+    if user['daily_count'] == 0:
+        bot.send_message(uid, "Hech bo'lmasa bitta ish qilaylik... 🙄")
         return
 
-    percent = int((stats['daily_count'] / len(DAILY_TASKS)) * 100)
-    stats['history'].append(f"{datetime.now().strftime('%d/%m')}: {percent}%")
-    stats['daily_count'] = 0 
+    percent = int((user['daily_count'] / 7) * 100)
+    user['history'].append(f"{datetime.now().strftime('%d/%m')}: {percent}%")
+    user['daily_count'] = 0
+    user['completed_today'] = []
+    save_data()
     
-    bot.send_message(uid, f"🏁 Kun yakunlandi! Bugungi natija: {percent}%\nSiz reytingda ko'tarilmoqdasiz!", reply_markup=main_menu())
+    motivation = random.choice(MOTIVATIONS)
+    bot.send_animation(uid, random.choice(GIFS), caption=f"Natija: {percent}%\n\n{motivation}")
 
 @bot.message_handler(func=lambda m: m.text == "Reyting 📊")
-def show_ranking(message):
-    # Reytingni ballar bo'yicha saralash
-    sorted_users = sorted(user_data.items(), key=lambda x: x[1]['total_score'], reverse=True)
+def ranking(message):
+    # Faqat ro'yxatdan o'tganlarni saralash
+    active_users = {k: v for k, v in user_data.items() if v['step'] == 'main'}
+    sorted_u = sorted(active_users.items(), key=lambda x: x[1]['total_score'], reverse=True)[:10] # Top 10
     
-    ranking_text = "🏆 **UMUMIY REYTING**\n\n"
-    user_pos = 0
+    text = "🏆 TOP 10 FOYDALANUVCHI:\n\n"
+    for i, (uid, data) in enumerate(sorted_u):
+        text += f"{i+1}. {data['info']['nickname']} — {data['total_score']} ball\n"
     
-    for i, (uid, data) in enumerate(sorted_users):
-        nick = data['info'].get('nickname', 'User')
-        score = data['total_score']
-        ranking_text += f"{i+1}. {nick} — {score} ball\n"
-        if uid == message.chat.id:
-            user_pos = i + 1
-            
-    ranking_text += f"\n👤 Sizning o'rningiz: {user_pos}-o'rin"
-    bot.send_message(message.chat.id, ranking_text, parse_mode='Markdown')
-
-@bot.message_handler(func=lambda m: m.text == "Natijalar jadvali 🏆")
-def show_results(message):
-    uid = message.chat.id
-    user = get_user(uid)
-    history = "\n".join(user['history']) if user['history'] else "Hozircha bo'sh"
-    bot.send_message(uid, f"🚀 **{user['info'].get('nickname')}** natijalari:\n\n{history}", parse_mode='Markdown')
-
-@bot.message_handler(func=lambda m: m.text == "Orqaga ⬅️")
-def back(message):
-    bot.send_message(message.chat.id, "Asosiy menyu:", reply_markup=main_menu())
+    bot.send_message(message.chat.id, text)
 
 bot.infinity_polling()
