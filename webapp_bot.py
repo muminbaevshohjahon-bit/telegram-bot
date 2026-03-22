@@ -187,4 +187,4 @@ def leaderboard(message):
         text += f"{i+1}. {name} — {data.get('total_score', 0)} ball\n"
     bot.send_message(message.chat.id, text, parse_mode='HTML')
 
-@bot.message_handler(func=
+@bot.message_handler(func=)
