@@ -18,8 +18,11 @@ bot = telebot.TeleBot(TOKEN)
 # --- MA'LUMOTLAR ---
 
 def load_data():
-    return {} # Mana bu qator satr boshidan 4 ta bo'shliq ichkarida bo'lishi kerak
-
+    try:
+        with open('users_db.json', 'r') as f:
+            return json.load(f)
+    except:
+        return {}
 def save_data():
     with open('users_db.json', 'w') as f:
         json.dump(user_data, f)
