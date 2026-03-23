@@ -71,18 +71,22 @@ def get_user(uid):
 
 def main_menu():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    web_url = "https://muminbaevshohjahon-bit.github.io/telegram-bot/" 
+    # URL oxiriga ?v=1 qo'shildi, bu keshni yangilaydi
+    web_url = "https://muminbaevshohjahon-bit.github.io/telegram-bot/?v=" + str(random.randint(1, 999))
     markup.add(KeyboardButton("Chellenjlar 🗓", web_app=WebAppInfo(url=web_url)))
-    markup.add(KeyboardButton("Peshqadamlar 🏆"), KeyboardButton("Mening natijam 📊"))
-    markup.add(KeyboardButton("Finish 🏁"))
+    # ... qolgan tugmalar
     return markup
 
 # --- LOGIKA ---
 @bot.message_handler(commands=['start'])
+@bot.message_handler(commands=['start'])
 def start(message):
     uid = str(message.chat.id)
     
-    # MUHIM: Xotirani va WebApp katakchalarini to'liq nollash
+    # MUHIM: Foydalanuvchini bazadan butunlay o'chirib, qayta ochamiz
+    if uid in user_data:
+        del user_data[uid]
+    
     user_data[uid] = {
         'total_score': 0, 
         'history': [], 
@@ -90,15 +94,15 @@ def start(message):
         'info': {}, 
         'step': 'get_name'
     }
-    save_data() # Faylga yozish
+    
+    save_data() # Faylga yozamiz
     
     welcome_text = (
         "<b><i>Assalomu aleykum hush kelibsiz!</i></b>\n"
-        "<b><i>Men MBE useful tomonidan yaratilgan botman!</i></b>\n\n"
-        "<b><i>Maqsadimiz 30 kunlik chellenj davomida intizomni shakllantirish.</i></b>\n"
-        "<b><i>Balki foydasi tegar...</i></b>\n\n"
+        "<b><i>Barcha eski ma'lumotlar nollantirildi.</i></b>\n\n"
         "Keling tanishib olaylik... Ismingizni kiriting:"
     )
+    bot.send_message(message.chat.id, welcome_text, parse_mode='HTML')
     bot.send_message(message.chat.id, welcome_text, parse_mode='HTML')
 
 @bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_name')
