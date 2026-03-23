@@ -1,4 +1,3 @@
-Klass ish
 
 import telebot
 import os
