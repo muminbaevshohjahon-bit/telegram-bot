@@ -226,7 +226,43 @@ def finish_day(message):
     user = get_user(message.chat.id)
     today = datetime.now().strftime('%d/%m')
     
-    completed_count = len(user.get('completed_today', []))
+    # 1. Vazifalar sonini tekshirish
+    completed_tasks = user.get('completed_today', [])
+    completed_count = len(completed_tasks)
     percent = int((completed_count / TOTAL_TASKS) * 100)
     
+    # 2. Tarixga qo'shish va bugungi ro'yxatni tozalash
     user['history'].append(f"{today}: {percent}%")
+    user['completed_today'] = [] 
+    save_data()
+
+    # 3. Javob yuborish
+    motivation = random.choice(FINISH_MOTIVATIONS)
+    msg = f"🏁 <b>Natija: {percent}%</b>\n\n{motivation}"
+
+    try:
+        bot.send_animation(
+            message.chat.id, 
+            random.choice(GIFS), 
+            caption=msg, 
+            parse_mode='HTML'
+        )
+    except Exception:
+        bot.send_message(message.chat.id, msg, parse_mode='HTML')
+
+@bot.message_handler(content_types=['web_app_data'])
+def web_app_receive(message):
+    data = json.loads(message.web_app_data.data)
+    user = get_user(message.chat.id)
+    if data.get('action') == "done":
+        task = data.get('task')
+        if task not in user.get('completed_today', []):
+            if 'completed_today' not in user:
+                user['completed_today'] = []
+            user['completed_today'].append(task)
+            user['total_score'] += 10
+            save_data()
+            bot.send_message(message.chat.id, f"✅ {task} bajarildi!\n{random.choice(CUSTOM_MOTIVATIONS)}")
+
+if __name__ == "__main__":
+    bot.infinity_polling()
