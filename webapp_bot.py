@@ -130,10 +130,12 @@ def main_menu():
     
     return markup
 # --- LOGIKA ---
-@bot.message_handler(commands=['start'])
-def start(message):
-    user = get_user(message.chat.id)   
-    
+@bot.message_handler(commands=['reset_me'])
+def reset_user(message):
+    uid = str(message.chat.id)
+    user_data[uid] = {'total_score': 0, 'history': [], 'completed_today': [], 'info': {}, 'step': 'start'}
+    save_data()
+    bot.send_message(message.chat.id, "🔄 <b>Natijalar nollanib, bot tozalangan holatga qaytarildi!</b>", parse_mode='HTML')
     welcome_text = (
         "<b><i>Assalomu aleykum hush kelibsiz!</i></b>\n"
         "<b><i>Men MBE useful tomonidan yaratilgan botman!</i></b>\n\n"
