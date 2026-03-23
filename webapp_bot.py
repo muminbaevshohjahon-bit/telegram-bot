@@ -16,11 +16,7 @@ TOKEN = os.getenv("TOKEN")
 bot = telebot.TeleBot(TOKEN)
 
 # --- MA'LUMOTLAR ---
-def load_data():
-    if os.path.exists('users_db.json'):
-        with open('users_db.json', 'r') as f:
-            try: return json.load(f)
-            except: return {}
+
     return {}
 
 def save_data():
@@ -118,8 +114,16 @@ def get_user(uid):
 def main_menu():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     web_url = "https://muminbaevshohjahon-bit.github.io/telegram-bot/" 
-    markup.add(KeyboardButton("Kabinet 📱", web_app=WebAppInfo(url=web_url)))
-    markup.add(KeyboardButton("Peshqadamlar 🏆"), KeyboardButton("Finish 🏁"))
+    
+    # 1-qator: WebApp (Chellenjlar)
+    markup.add(KeyboardButton("Chellenjlar 🗓", web_app=WebAppInfo(url=web_url)))
+    
+    # 2-qator: Peshqadamlar va Yangi Grafik tugmasi
+    markup.add(KeyboardButton("Peshqadamlar 🏆"), KeyboardButton("Mening natijam 📊"))
+    
+    # 3-qator: Finish
+    markup.add(KeyboardButton("Finish 🏁"))
+    
     return markup
 # --- LOGIKA ---
 @bot.message_handler(commands=['start'])
@@ -180,7 +184,7 @@ def get_nick(message):
     pid = f"MBE-{random.randint(10000, 99999)}"
     user['info']['public_id'] = pid
     save_data()
-    bot.send_message(message.chat.id, f"Muvaffaqiyatli ro'yxatdan o'tdingiz!\nSizning ID: <b>{pid}</b>", parse_mode='HTML', reply_markup=main_menu())
+    bot.send_message(message.chat.id, f"Tabrikleyshn,muvaffaqiyatli ro'yxatdan o'tdingiz!🔥Chellenjni boshlang\nSizning ID: <b>{pid}</b>", parse_mode='HTML', reply_markup=main_menu())
 
 @bot.message_handler(func=lambda m: m.text == "Peshqadamlar 🏆")
 def leaderboard(message):
@@ -192,7 +196,30 @@ def leaderboard(message):
         score = data.get('total_score', 0)
         text += f"{i+1}. {nick} [{pid}] — {score} ball\n"
     bot.send_message(message.chat.id, text, parse_mode='HTML')
+@bot.message_handler(func=lambda m: m.text == "Mening natijam 📊")
+def show_progress(message):
+    user = get_user(message.chat.id)
+    history = user.get('history', [])
+    
+    if not history:
+        bot.send_message(message.chat.id, "📊 <b>Sizda hali natijalar yo'q.</b>\nBugun birinchi marta 'Finish' tugmasini bosing!", parse_mode='HTML')
+        return
 
+    text = "📊 <b>Sizning oxirgi 7 kunlik natijangiz:</b>\n\n"
+    for entry in history[-7:]: # Faqat oxirgi 7 ta yozuvni oladi
+        try:
+            date, perc = entry.split(": ")
+            num = int(perc.replace('%', ''))
+            
+            # Har 10% uchun bitta yashil kvadrat
+            filled = num // 10
+            bar = "🟩" * filled + "⬜" * (10 - filled)
+            text += f"📅 {date}: {bar} <b>{perc}</b>\n"
+        except:
+            continue
+    
+    text += f"\n🏆 Umumiy ballingiz: <b>{user['total_score']}</b>"
+    bot.send_message(message.chat.id, text, parse_mode='HTML')
 @bot.message_handler(func=lambda m: m.text == "Finish 🏁")
 def finish_day(message):
     user = get_user(message.chat.id)
@@ -239,39 +266,3 @@ def web_app_receive(message):
             user['total_score'] += 10
             save_data()
             bot.send_message(message.chat.id, f"✅ {task} bajarildi!\n{random.choice(CUSTOM_MOTIVATIONS)}")
-# --- MOTIVATSION ESLATMALAR OQIMI ---
-def reminder_thread():
-    while True:
-        try:
-            now = datetime.now().strftime("%H:%M")
-            reminder_text = ""
-
-            # Vaqtlarni tekshirish
-            if now == "06:30":
-                reminder_text = "☀️ **Muvaffaqiyatli insonlar erta turadi!**\nKuningiz xayrli o'tsin."
-            elif now == "09:30":
-                reminder_text = "🚀 **Ishonamanki, sen chellenjlarni bajarayapsan!**\nTo'xtab qolma."
-            elif now == "14:30":
-                reminder_text = "💎 **Intizom bu — kichik lekin doimiy qadamlar.**\nDavom etamiz!"
-            elif now == "20:00":
-                reminder_text = "🧠 **Aqlli inson uchun har kuni yangi kun boshlanadi.**\nHali ham kech emas, vazifalarni yakunla!"
-
-            # Agar vaqt to'g'ri kelsa, barcha foydalanuvchilarga yuborish
-            if reminder_text:
-                for uid in list(user_data.keys()):
-                    try:
-                        bot.send_message(uid, reminder_text, parse_mode='HTML')
-                    except:
-                        continue
-                time.sleep(61) # Bir minut ichida qayta yubormaslik uchun
-
-        except Exception as e:
-            print(f"Reminder error: {e}")
-        
-        time.sleep(30) # Har 30 soniyada vaqtni tekshiradi
-
-# Alohida oqimda ishga tushirish
-threading.Thread(target=reminder_thread, daemon=True).start()
-
-if __name__ == "__main__":
-    bot.infinity_polling()
