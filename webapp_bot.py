@@ -258,6 +258,7 @@ def finish_day(message):
 
 @bot.message_handler(content_types=['web_app_data'])
 def web_app_receive(message):
+    
     data = json.loads(message.web_app_data.data)
     user = get_user(message.chat.id)
     if data.get('action') == "done":
@@ -267,5 +268,7 @@ def web_app_receive(message):
             user['total_score'] += 10
             save_data()
             bot.send_message(message.chat.id, f"✅ {task} bajarildi!\n{random.choice(CUSTOM_MOTIVATIONS)}")
-           if __name__ == "__main__":
-    bot.infinity_polling()  # <--- Shu yerda satr boshidan 4 ta probel bo'lishi shart!
+            # Tepadagi funksiyadan keyin 2 ta bo'sh qator tashlang
+
+if __name__ == "__main__":
+    bot.infinity_polling()
