@@ -109,6 +109,22 @@ def get_name(message):
 def get_birth(message):
     uid = str(message.chat.id)
     user_data[uid]['info']['birth_year'] = message.text
+        user['step'] = 'get_month'
+    save_data()
+    bot.send_message(message.chat.id, "Tug‘ilgan oy (1-12):")
+
+@bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_month')
+def get_month(message):
+    user = get_user(message.chat.id)
+    user['info']['birth_month'] = message.text
+    user['step'] = 'get_day'
+    save_data()
+    bot.send_message(message.chat.id, "Tug‘ilgan kun (1-31):")
+
+@bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_day')
+def get_day(message):
+    user = get_user(message.chat.id)
+    user['info']['birth_day'] = message.text
     user_data[uid]['step'] = 'get_nick'
     save_data()
     bot.send_message(message.chat.id, "Nickname kiriting:")
