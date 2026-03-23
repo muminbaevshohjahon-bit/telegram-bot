@@ -64,7 +64,6 @@ GIFS = [
     "https://media.giphy.com/media/g9582DNuQppxC/giphy.gif"
 ]
 
-
 def get_user(uid):
     uid = str(uid)
     if uid not in user_data:
@@ -73,16 +72,18 @@ def get_user(uid):
 
 def main_menu():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    # ?v={random} kalendarni nollashtirishga yordam beradi
     web_url = f"https://muminbaevshohjahon-bit.github.io/telegram-bot/?v={random.randint(1, 999999)}"
     markup.add(KeyboardButton("Chellenjlar 🗓", web_app=WebAppInfo(url=web_url)))
     markup.add(KeyboardButton("Peshqadamlar 🏆"), KeyboardButton("Mening natijam 📊"))
     markup.add(KeyboardButton("Finish 🏁"))
     return markup
 
-# --- START VA REGISTRATSIYA ---
+# --- START VA REGISTRATSIYA (NOLLASHTIRISH SHU YERDA) ---
 @bot.message_handler(commands=['start'])
 def start(message):
     uid = str(message.chat.id)
+    # Foydalanuvchi start bossa, hamma narsasi nollanadi
     user_data[uid] = {'total_score': 0, 'history': [], 'completed_today': [], 'info': {}, 'step': 'get_name'}
     save_data()
     welcome_text = (
@@ -121,7 +122,26 @@ def get_day(message):
 def get_nick(message):
     uid = str(message.chat.id); user_data[uid]['info']['nickname'] = message.text
     user_data[uid]['step'] = 'main'; save_data()
-    bot.send_message(message.chat.id, "Ro'yxatdan o'tildi!", reply_markup=main_menu())
+    bot.send_message(message.chat.id, "Tabrikleysh,Ro'yxatdan o'tildi!🔥", reply_markup=main_menu())
+
+# --- PESHQADAMLAR (ISHMAYOTGAN QISM TO'G'RILANDI) ---
+@bot.message_handler(func=lambda m: m.text == "Peshqadamlar 🏆")
+def leaderboard(message):
+    users = []
+    for uid, data in user_data.items():
+        if 'info' in data and 'nickname' in data['info']:
+            users.append({'nick': data['info']['nickname'], 'score': data.get('total_score', 0)})
+    
+    if not users:
+        bot.send_message(message.chat.id, "Hali hech kim ro'yxatdan o'tmagan.")
+        return
+
+    users.sort(key=lambda x: x['score'], reverse=True)
+    text = "🏆 <b>Eng kuchli ishtirokchilar:</b>\n\n"
+    for i, u in enumerate(users[:10], 1):
+        text += f"{i}. {u['nick']} — {u['score']} ball\n"
+    
+    bot.send_message(message.chat.id, text, parse_mode='HTML')
 
 # --- MENING NATIJAM ---
 @bot.message_handler(func=lambda m: m.text == "Mening natijam 📊")
@@ -132,13 +152,15 @@ def my_stats(message):
     if not history: stat_text += "Hali natija yo'q."
     else:
         for entry in history[-7:]:
-            day, res = entry.split(": ")
-            icon = "✅" if "100%" in res else "📈"
-            stat_text += f"{icon} {day}: {res}\n"
+            try:
+                day, res = entry.split(": ")
+                icon = "✅" if "100%" in res else "📈"
+                stat_text += f"{icon} {day}: {res}\n"
+            except: continue
     stat_text += f"\n🔥 Umumiy ball: {user.get('total_score', 0)}"
     bot.send_message(message.chat.id, stat_text, parse_mode='HTML')
 
-# --- FINISH ---
+# --- FINISH (50% DAN PAST BO'LSA GIF JO'NATILMAYDI) ---
 @bot.message_handler(func=lambda m: m.text == "Finish 🏁")
 def finish_day(message):
     user = get_user(message.chat.id)
@@ -146,29 +168,32 @@ def finish_day(message):
     if any(today in entry for entry in user.get('history', [])):
         bot.send_message(message.chat.id, "Bugun yakunlab bo'lingan! ✨")
         return
+    
     percent = int((len(user.get('completed_today', [])) / TOTAL_TASKS) * 100)
     user.setdefault('history', []).append(f"{today}: {percent}%")
     user['completed_today'] = []; save_data()
-    motivation = random.choice(FINISH_MOTIVATIONS) if percent > 50 else "Ertaga kuchliroq bo'lamiz!"
-    bot.send_animation(message.chat.id, random.choice(GIFS), caption=f"🏁 Natija: {percent}%\n\n{motivation}", parse_mode='HTML')
+    
+    if percent >= 50:
+        motivation = random.choice(FINISH_MOTIVATIONS)
+        bot.send_animation(message.chat.id, random.choice(GIFS), caption=f"🏁 Natija: {percent}%\n\n{motivation}", parse_mode='HTML')
+    else:
+        # 50% dan past bo'lsa faqat matn
+        bot.send_message(message.chat.id, f"🏁 Natija: {percent}%\n\nErtaga kuchliroq bo'lamiz! 💪", parse_mode='HTML')
 
-# --- AVTOMATIK ESALTMALAR VA FINISH (SHU QISM QO'SHILDI) ---
+# --- SCHEDULER (NOTIFICATIONS & AUTO-FINISH) ---
 def auto_scheduler():
     while True:
         now = datetime.now().strftime("%H:%M")
-        # Tonggi eslatma
         if now == "08:00":
             for uid in user_data.keys():
                 try: bot.send_message(uid, "☀️ Xayrli tong! Bugun 7 ta vazifani ham yoramizmi?")
                 except: pass
             time.sleep(61)
-        # Kechki eslatma
         if now == "21:00":
             for uid in user_data.keys():
                 try: bot.send_message(uid, "🔔 Kun yakunlanmoqda, Finish tugmasini bosishni unutmang!")
                 except: pass
             time.sleep(61)
-        # AVTO-FINISH (23:00)
         if now == "23:00":
             today = datetime.now().strftime('%d/%m')
             for uid, data in user_data.items():
