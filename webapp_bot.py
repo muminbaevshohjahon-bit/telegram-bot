@@ -23,6 +23,7 @@ def load_data():
             return json.load(f)
     except:
         return {}
+        
 def save_data():
     with open('users_db.json', 'w') as f:
         json.dump(user_data, f)
@@ -30,7 +31,7 @@ def save_data():
 user_data = load_data()
 TOTAL_TASKS = 7
 
-# Motivatsiyalar (Siz yozgan ro'yxat)
+# Motivatsiyalar
 CUSTOM_MOTIVATIONS = [
     "Sen boshlamasang, hech narsa boshlanmaydi. 🔥",
     "Bugungi og‘riq — ertangi kuch. 💪",
@@ -38,7 +39,7 @@ CUSTOM_MOTIVATIONS = [
     "Intizom — bu o'ziga berilgan va'dani bajarishdir. ✨",
     "Har kuni kichik qadam — katta natija.",
     "Eng katta raqibing — kechagi o‘zing.",
-        "Sen boshlamasang, hech narsa boshlanmaydi.", "Mukammallikni kutma — harakatni boshlash muhim.",
+    "Sen boshlamasang, hech narsa boshlanmaydi.", "Mukammallikni kutma — harakatni boshlash muhim.",
     "Bugungi og‘riq — ertangi kuch.", "Sen o‘ylagandan ham kuchlisan.",
     "Hech kim seni qutqarmaydi — o‘zingni o‘zing ko‘tar.", "Qiyinchilik — bu yashirin imkoniyat.",
     "Orzular faqat harakat bilan haqiqatga aylanadi.", "Qo‘rqish — o‘sish boshlanishidir.",
@@ -88,10 +89,7 @@ CUSTOM_MOTIVATIONS = [
     "O‘z yo‘lingni tanla va yur.", "Sen bunga qodirsan — ishon.",
     "Harakat qilgan odam yutadi.", "Qanchalik qiyin bo‘lsa — shunchalik qiymatli.",
     "Sen hech qachon yolg‘iz emassan — o‘zing bor.", "Boshlagin. Hozir. Shu yerda."
-
 ]
-
-
 
 FINISH_MOTIVATIONS = [
     "Dahshat! Vapshe zo'r, barakalla! 🔥",
@@ -109,6 +107,7 @@ GIFS = [
     "https://media.giphy.com/media/8ZblO3ZD5NMltPaFS2/giphy.gif",
     "https://media.giphy.com/media/g9582DNuQppxC/giphy.gif"
 ]
+
 def get_user(uid):
     uid = str(uid)
     if uid not in user_data:
@@ -118,24 +117,21 @@ def get_user(uid):
 def main_menu():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     web_url = "https://muminbaevshohjahon-bit.github.io/telegram-bot/" 
-    
-    # 1-qator: WebApp (Chellenjlar)
     markup.add(KeyboardButton("Chellenjlar 🗓", web_app=WebAppInfo(url=web_url)))
-    
-    # 2-qator: Peshqadamlar va Yangi Grafik tugmasi
     markup.add(KeyboardButton("Peshqadamlar 🏆"), KeyboardButton("Mening natijam 📊"))
-    
-    # 3-qator: Finish
     markup.add(KeyboardButton("Finish 🏁"))
-    
     return markup
+
 # --- LOGIKA ---
 @bot.message_handler(commands=['start'])
 def start(message):
     uid = str(message.chat.id)
-    # Ma'lumotlarni nollash
+    # 1. Foydalanuvchini olish
+    user = get_user(uid)
+    # 2. Ma'lumotlarni nollash
     user_data[uid] = {'total_score': 0, 'history': [], 'completed_today': [], 'info': {}, 'step': 'get_name'}
     save_data()
+    
     welcome_text = (
         "<b><i>Assalomu aleykum hush kelibsiz!</i></b>\n"
         "<b><i>Men MBE useful tomonidan yaratilgan botman!</i></b>\n\n"
@@ -144,12 +140,11 @@ def start(message):
         "Keling tanishib olaylik... Ismingizni kiriting:"
     )
     
-    user['step'] = 'get_name'
-    save_data() # Ma'lumotlarni saqlash
-    
-    # 'message.chat.id' orqali yuborish eng xavfsiz yo'l
+    # User stepini yangilash
+    user_data[uid]['step'] = 'get_name'
+    save_data()
     bot.send_message(message.chat.id, welcome_text, parse_mode='HTML')
-    
+
 @bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_name')
 def get_name(message):
     user = get_user(message.chat.id)
@@ -202,6 +197,7 @@ def leaderboard(message):
         score = data.get('total_score', 0)
         text += f"{i+1}. {nick} [{pid}] — {score} ball\n"
     bot.send_message(message.chat.id, text, parse_mode='HTML')
+
 @bot.message_handler(func=lambda m: m.text == "Mening natijam 📊")
 def show_progress(message):
     user = get_user(message.chat.id)
@@ -212,12 +208,10 @@ def show_progress(message):
         return
 
     text = "📊 <b>Sizning oxirgi 7 kunlik natijangiz:</b>\n\n"
-    for entry in history[-7:]: # Faqat oxirgi 7 ta yozuvni oladi
+    for entry in history[-7:]:
         try:
             date, perc = entry.split(": ")
             num = int(perc.replace('%', ''))
-            
-            # Har 10% uchun bitta yashil kvadrat
             filled = num // 10
             bar = "🟩" * filled + "⬜" * (10 - filled)
             text += f"📅 {date}: {bar} <b>{perc}</b>\n"
@@ -226,50 +220,13 @@ def show_progress(message):
     
     text += f"\n🏆 Umumiy ballingiz: <b>{user['total_score']}</b>"
     bot.send_message(message.chat.id, text, parse_mode='HTML')
+
 @bot.message_handler(func=lambda m: m.text == "Finish 🏁")
 def finish_day(message):
     user = get_user(message.chat.id)
     today = datetime.now().strftime('%d/%m')
     
-    
-
-    # 2. Foizni hisoblash (TOTAL_TASKS = 7 ga asoslanib)
-    completed_count = len(user['completed_today'])
+    completed_count = len(user.get('completed_today', []))
     percent = int((completed_count / TOTAL_TASKS) * 100)
     
-    # 3. Tarixga (History) saqlash
     user['history'].append(f"{today}: {percent}%")
-    user['completed_today'] = [] # Yangi kun uchun tozalash
-    save_data()
-
-    # 4. Motivatsiya va GIF tanlash
-    motivation = random.choice(FINISH_MOTIVATIONS)
-    msg = f"🏁 <b>Natija: {percent}%</b>\n\n{motivation}"
-
-    # 5. GIF bilan birga yuborish (Xatolikdan himoyalangan)
-    try:
-        bot.send_animation(
-            message.chat.id, 
-            random.choice(GIFS), 
-            caption=msg, 
-            parse_mode='HTML'
-        )
-    except Exception:
-        # Agar GIF yuklanmasa, faqat matnni yuboradi
-        bot.send_message(message.chat.id, msg, parse_mode='HTML')
-
-@bot.message_handler(content_types=['web_app_data'])
-def web_app_receive(message):
-    
-    data = json.loads(message.web_app_data.data)
-    user = get_user(message.chat.id)
-    if data.get('action') == "done":
-        task = data.get('task')
-        if task not in user['completed_today']:
-            user['completed_today'].append(task)
-            user['total_score'] += 10
-            save_data()
-            bot.send_message(message.chat.id, f"✅ {task} bajarildi!\n{random.choice(CUSTOM_MOTIVATIONS)}")
-            # Tepadagi funksiyadan keyin 2 ta bo'sh qator tashlang
-if __name__ == "__main__":
-    bot.infinity_polling()
