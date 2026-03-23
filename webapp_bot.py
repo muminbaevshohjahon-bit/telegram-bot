@@ -124,6 +124,30 @@ def get_nick(message):
     user_data[uid]['step'] = 'main'; save_data()
     bot.send_message(message.chat.id, "Tabrikleyshn, Ro'yxatdan o'tildi!🔥", reply_markup=main_menu())
 
+# --- ADMIN PANEL FUNKSIYALARI ---
+@bot.message_handler(commands=['admin'])
+def admin_panel(message):
+    if message.chat.id == ADMIN_ID:
+        total = len(user_data)
+        text = f"👨‍💻 <b>Admin Panel</b>\n\n👥 Jami foydalanuvchilar: {total}\n\n/users - Ro'yxat\n/db_download - Bazani yuklab olish"
+        bot.send_message(message.chat.id, text, parse_mode='HTML')
+
+@bot.message_handler(commands=['users'])
+def list_users(message):
+    if message.chat.id == ADMIN_ID:
+        text = "📋 <b>Foydalanuvchilar:</b>\n\n"
+        for uid, data in user_data.items():
+            name = data.get('info', {}).get('name', 'Noma'lum')
+            nick = data.get('info', {}).get('nickname', 'Yo'q')
+            score = data.get('total_score', 0)
+            text += f"👤 {name} (@{nick}) — {score} ball\n"
+        bot.send_message(message.chat.id, text, parse_mode='HTML')
+
+@bot.message_handler(commands=['db_download'])
+def send_db(message):
+    if message.chat.id == ADMIN_ID:
+        with open('users_db.json', 'rb') as f:
+            bot.send_document(message.chat.id, f)
 # --- PESHQADAMLAR (ISHMAYOTGAN QISM TO'G'RILANDI) ---
 @bot.message_handler(func=lambda m: m.text == "Peshqadamlar 🏆")
 def leaderboard(message):
