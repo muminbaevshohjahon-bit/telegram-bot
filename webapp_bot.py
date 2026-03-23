@@ -17,7 +17,8 @@ bot = telebot.TeleBot(TOKEN)
 
 # --- MA'LUMOTLAR ---
 
-    return {}
+def load_data():
+    return {} # <--- Mana shu yerda satr boshidan 4 ta probel (yoki 1 ta Tab) bo'lishi shart!
 
 def save_data():
     with open('users_db.json', 'w') as f:
