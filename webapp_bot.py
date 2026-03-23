@@ -114,9 +114,9 @@ def get_user(uid):
         user_data[uid] = {'total_score': 0, 'history': [], 'completed_today': [], 'info': {}, 'step': 'start'}
     return user_data[uid]
 
-def main_menu():
+def main_menu(uid):
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    web_url = "https://muminbaevshohjahon-bit.github.io/telegram-bot/" 
+    web_url = f"https://muminbaevshohjahon-bit.github.io/telegram-bot/?uid={uid}&v={random.randint(1,999999)}"
     markup.add(KeyboardButton("Chellenjlar 🗓", web_app=WebAppInfo(url=web_url)))
     markup.add(KeyboardButton("Peshqadamlar 🏆"), KeyboardButton("Mening natijam 📊"))
     markup.add(KeyboardButton("Finish 🏁"))
