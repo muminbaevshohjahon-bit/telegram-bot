@@ -22,7 +22,7 @@ def load_data():
             return json.load(f)
     except:
         return {}
-        
+
 def save_data():
     with open('users_db.json', 'w') as f:
         json.dump(user_data, f, indent=4)
@@ -30,7 +30,7 @@ def save_data():
 user_data = load_data()
 TOTAL_TASKS = 7
 
-# 1. TO'LIQ CUSTOM MOTIVATIONS (Vazifa bajarilganda)
+# --- MOTIVATSIYALAR ---
 CUSTOM_MOTIVATIONS = [
     "Sen boshlamasang, hech narsa boshlanmaydi. 🔥", "Bugungi og‘riq — ertangi kuch. 💪",
     "Eng zo‘r vaqt — hozir. 🚀", "Intizom — bu o'ziga berilgan va'dani bajarishdir. ✨",
@@ -47,7 +47,6 @@ CUSTOM_MOTIVATIONS = [
     "O‘zgarish sendan boshlanadi.", "Boshlagin. Hozir. Shu yerda."
 ]
 
-# 2. TO'LIQ FINISH MOTIVATIONS (50% dan oshganda)
 FINISH_MOTIVATIONS = [
     "Dahshat! Vapshe zo'r, barakalla! 🔥",
     "Sen o'ylagandan ham kuchlisan, davom et! 💪",
@@ -57,7 +56,6 @@ FINISH_MOTIVATIONS = [
     "Ko'zim to'rt bo'lib ketdi, malades."
 ]
 
-# 3. TO'LIQ GIF LINKLARI
 GIFS = [
     "https://media.giphy.com/media/FACfMgP1N9mlG/giphy.gif",
     "https://media2.giphy.com/media/fUQ4rhUZJYiQsas6WD/giphy.gif",
@@ -80,69 +78,16 @@ def main_menu():
     markup.add(KeyboardButton("Finish 🏁"))
     return markup
 
-# --- PESHQADAMLAR (SOLISHTIRISH BILAN) ---
-@bot.message_handler(func=lambda m: m.text == "Peshqadamlar 🏆")
-def leaderboard(message):
-    users = []
-    for uid, data in user_data.items():
-        if 'info' in data and 'nickname' in data['info']:
-            users.append({'nick': data['info']['nickname'], 'score': data.get('total_score', 0), 'uid': uid})
-    
-    if not users:
-        bot.send_message(message.chat.id, "Hali hech kim yo'q.")
-        return
+# --- LOGIKA ---
 
-    users.sort(key=lambda x: x['score'], reverse=True)
-    top_user = users[0]
-    my_uid = str(message.chat.id)
-    my_score = get_user(my_uid).get('total_score', 0)
-
-    text = "🏆 <b>Eng kuchli ishtirokchilar:</b>\n\n"
-    for i, u in enumerate(users[:10], 1):
-        text += f"{i}. {u['nick']} — {u['score']} ball\n"
-
-    if top_user['uid'] != my_uid:
-        diff = top_user['score'] - my_score
-        p_diff = int((diff / my_score * 100)) if my_score > 0 else 100
-        text += f"\n\n💡 <b>Solishtirish:</b>\n{top_user['nick']} sendan {p_diff}% kuchliroq! Uni quvib o'tishga harakat qil! 🔥"
-    
-    bot.send_message(message.chat.id, text, parse_mode='HTML')
-
-# --- FINISH VA 30-KUN ---
-@bot.message_handler(func=lambda m: m.text == "Finish 🏁")
-def finish_day(message):
-    user = get_user(message.chat.id)
-    today = datetime.now().strftime('%d/%m')
-    
-    if any(today in entry for entry in user.get('history', [])):
-        bot.send_message(message.chat.id, "Bugun yakunlab bo'lingan! ✨")
-        return
-
-    percent = int((len(user.get('completed_today', [])) / TOTAL_TASKS) * 100)
-    user.setdefault('history', []).append(f"{today}: {percent}%")
-    user['completed_today'] = [] 
-    save_data()
-
-    if len(user.get('history', [])) == 30:
-        bot.send_animation(message.chat.id, "https://media.giphy.com/media/g9582DNuQppxC/giphy.gif", 
-                           caption="🎉 <b>URRAA! 30 KUN YAKUNLANDI!</b> 🎉\nSiz haqiqiy g'olibsiz! 🏆", parse_mode='HTML')
-        return
-
-    if percent <= 20: motivation = "Sen qo'lingdan kelganini qilding, ishonaman bundan ko'piga loyiqsan. Ertaga kuchliroq bo'lib qaytasan!"
-    elif percent <= 30: motivation = "Senga ishonaman, ertaga ko'proqini uddalaysan. Muhimi sen to'xtab qolmading!"
-    elif percent <= 50: motivation = "Bilardim uddalay olishingni, oz qoldi!"
-    else: motivation = random.choice(FINISH_MOTIVATIONS)
-
-    msg = f"🏁 <b>Natija: {percent}%</b>\n\n{motivation}"
-    try: bot.send_animation(message.chat.id, random.choice(GIFS), caption=msg, parse_mode='HTML')
-    except: bot.send_message(message.chat.id, msg, parse_mode='HTML')
-
-# --- START VA RO'YXATDAN O'TISH ---
 @bot.message_handler(commands=['start'])
 def start(message):
     uid = str(message.chat.id)
+    # Yangi boshlaganda hamma narsani tozalash
     user_data[uid] = {'total_score': 0, 'history': [], 'completed_today': [], 'info': {}, 'step': 'get_name'}
     save_data()
+    
+    # SIZ SO'RAGAN SALOMLASHUV MATNI
     welcome_text = (
         "<b><i>Assalomu aleykum hush kelibsiz!</i></b>\n"
         "<b><i>Men MBE useful tomonidan yaratilgan botman!</i></b>\n\n"
@@ -174,14 +119,67 @@ def get_nick(message):
     user_data[uid]['info']['nickname'] = message.text
     user_data[uid]['step'] = 'main'
     save_data()
-    bot.send_message(message.chat.id, "Ro'yxatdan o'tildi!", reply_markup=main_menu())
+    bot.send_message(message.chat.id, "Ro'yxatdan muvaffaqiyatli o'tdingiz!", reply_markup=main_menu())
 
-# --- MENING NATIJAM ---
+@bot.message_handler(func=lambda m: m.text == "Peshqadamlar 🏆")
+def leaderboard(message):
+    users = []
+    for uid, data in user_data.items():
+        if 'info' in data and 'nickname' in data['info']:
+            users.append({'nick': data['info']['nickname'], 'score': data.get('total_score', 0), 'uid': uid})
+    
+    if not users:
+        bot.send_message(message.chat.id, "Hali hech kim yo'q.")
+        return
+
+    users.sort(key=lambda x: x['score'], reverse=True)
+    top_user = users[0]
+    my_uid = str(message.chat.id)
+    my_score = get_user(my_uid).get('total_score', 0)
+
+    text = "🏆 <b>Eng kuchli ishtirokchilar:</b>\n\n"
+    for i, u in enumerate(users[:10], 1):
+        text += f"{i}. {u['nick']} — {u['score']} ball\n"
+
+    if top_user['uid'] != my_uid:
+        diff = top_user['score'] - my_score
+        p_diff = int((diff / my_score * 100)) if my_score > 0 else 100
+        text += f"\n\n💡 <b>Solishtirish:</b>\n{top_user['nick']} sendan {p_diff}% kuchliroq! Uni quvib o'tishga harakat qil! 🔥"
+    
+    bot.send_message(message.chat.id, text, parse_mode='HTML')
+
+@bot.message_handler(func=lambda m: m.text == "Finish 🏁")
+def finish_day(message):
+    user = get_user(message.chat.id)
+    today = datetime.now().strftime('%d/%m')
+    
+    if any(today in entry for entry in user.get('history', [])):
+        bot.send_message(message.chat.id, "Bugun yakunlab bo'lingan! ✨")
+        return
+
+    percent = int((len(user.get('completed_today', [])) / TOTAL_TASKS) * 100)
+    user.setdefault('history', []).append(f"{today}: {percent}%")
+    user['completed_today'] = [] 
+    save_data()
+
+    if len(user.get('history', [])) == 30:
+        bot.send_animation(message.chat.id, "https://media.giphy.com/media/g9582DNuQppxC/giphy.gif", 
+                           caption="🎉 <b>URRAA! 30 KUN YAKUNLANDI!</b> 🎉\nSiz haqiqiy g'olibsiz! 🏆", parse_mode='HTML')
+        return
+
+    if percent <= 20: motivation = "Sen qo'lingdan kelganini qilding, ishonaman bundan ko'piga loyiqsan."
+    elif percent <= 50: motivation = "Bilardim uddalay olishingni, oz qoldi!"
+    else: motivation = random.choice(FINISH_MOTIVATIONS)
+
+    msg = f"🏁 <b>Natija: {percent}%</b>\n\n{motivation}"
+    try: bot.send_animation(message.chat.id, random.choice(GIFS), caption=msg, parse_mode='HTML')
+    except: bot.send_message(message.chat.id, msg, parse_mode='HTML')
+
 @bot.message_handler(func=lambda m: m.text == "Mening natijam 📊")
 def my_stats(message):
     user = get_user(message.chat.id)
     history = user.get('history', [])
-    stat_text = "📊 <b>Natijalar:</b>\n\n"
+    stat_text = "📊 <b>Oxirgi natijalaringiz:</b>\n\n"
     if not history: stat_text += "Hali natija yo'q."
     else:
         for entry in history[-7:]:
@@ -191,7 +189,7 @@ def my_stats(message):
     stat_text += f"\n🔥 Umumiy ball: {user.get('total_score', 0)}"
     bot.send_message(message.chat.id, stat_text, parse_mode='HTML')
 
-# --- NOTIFICATIONS (ESLATMALAR) ---
+# --- AVTOMATIK FUNKSIYALAR ---
 def auto_scheduler():
     while True:
         now = datetime.now().strftime("%H:%M")
