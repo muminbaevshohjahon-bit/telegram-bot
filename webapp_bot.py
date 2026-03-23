@@ -126,25 +126,31 @@ def main_menu():
 @bot.message_handler(commands=['start'])
 def start(message):
     uid = str(message.chat.id)
-    # 1. Foydalanuvchini olish
-    user = get_user(uid)
-    # 2. Ma'lumotlarni nollash
-    user_data[uid] = {'total_score': 0, 'history': [], 'completed_today': [], 'info': {}, 'step': 'get_name'}
-    save_data()
+    
+    # 1. Foydalanuvchi ma'lumotlarini xotirada to'liq nollaymiz
+    user_data[uid] = {
+        'total_score': 0, 
+        'history': [], 
+        'completed_today': [], 
+        'info': {}, 
+        'step': 'get_name'
+    }
+    
+    # 2. DIQQAT: O'zgarishni darhol users_db.json fayliga yozamiz
+    save_data() 
     
     welcome_text = (
-        "<b><i>Assalomu aleykum hush kelibsiz!</i></b>\n"
+        "<b><i>Assalomu aleykum xush kelibsiz!</i></b>\n"
         "<b><i>Men MBE useful tomonidan yaratilgan botman!</i></b>\n\n"
         "<b><i>Maqsadimiz 30 kunlik chellenj davomida intizomni shakllantirish.</i></b>\n"
         "<b><i>Balki foydasi tegar...</i></b>\n\n"
         "Keling tanishib olaylik... Ismingizni kiriting:"
     )
     
-    # User stepini yangilash
-    user_data[uid]['step'] = 'get_name'
+    # Navbatdagi qadamni ham saqlab qo'yamiz
     save_data()
+    
     bot.send_message(message.chat.id, welcome_text, parse_mode='HTML')
-
 @bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_name')
 def get_name(message):
     user = get_user(message.chat.id)
