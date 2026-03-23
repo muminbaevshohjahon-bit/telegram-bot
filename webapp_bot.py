@@ -137,8 +137,8 @@ def list_users(message):
     if message.chat.id == ADMIN_ID:
         text = "📋 <b>Foydalanuvchilar:</b>\n\n"
         for uid, data in user_data.items():
-            name = data.get('info', {}).get('name', 'Noma'lum')
-            nick = data.get('info', {}).get('nickname', 'Yo'q')
+            name = data.get('info', {}).get('name', "Noma'lum")
+            nick = data.get('info', {}).get('nickname', "Yo'q")
             score = data.get('total_score', 0)
             text += f"👤 {name} (@{nick}) — {score} ball\n"
         bot.send_message(message.chat.id, text, parse_mode='HTML')
