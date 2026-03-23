@@ -133,9 +133,9 @@ def main_menu():
 @bot.message_handler(commands=['reset_me'])
 def reset_user(message):
     uid = str(message.chat.id)
-    user_data[uid] = {'total_score': 0, 'history': [], 'completed_today': [], 'info': {}, 'step': 'start'}
+    # Ma'lumotlarni nollash
+    user_data[uid] = {'total_score': 0, 'history': [], 'completed_today': [], 'info': {}, 'step': 'get_name'}
     save_data()
-    bot.send_message(message.chat.id, "🔄 <b>Natijalar nollanib, bot tozalangan holatga qaytarildi!</b>", parse_mode='HTML')
     welcome_text = (
         "<b><i>Assalomu aleykum hush kelibsiz!</i></b>\n"
         "<b><i>Men MBE useful tomonidan yaratilgan botman!</i></b>\n\n"
@@ -231,10 +231,7 @@ def finish_day(message):
     user = get_user(message.chat.id)
     today = datetime.now().strftime('%d/%m')
     
-    # 1. Bugun allaqachon tugatgan bo'lsa tekshirish
-    if any(today in entry for entry in user['history']):
-        bot.send_message(message.chat.id, "Bugun uchun vazifalar yakunlangan. Ertaga ko'rishguncha! ✨")
-        return
+    
 
     # 2. Foizni hisoblash (TOTAL_TASKS = 7 ga asoslanib)
     completed_count = len(user['completed_today'])
