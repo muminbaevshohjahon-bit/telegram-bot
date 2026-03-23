@@ -124,7 +124,7 @@ def start(message):
     }
     save_data()
     
-        welcome_text = (
+  welcome_text = (
         "<b><i>Assalomu aleykum hush kelibsiz!</i></b>\n"
         "<b><i>Men MBE useful tomonidan yaratilgan botman!</i></b>\n\n"
         "<b><i>Maqsadimiz 30 kunlik chellenj davomida intizomni shakllantirish.</i></b>\n"
