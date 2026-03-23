@@ -17,13 +17,13 @@ bot = telebot.TeleBot(TOKEN)
 # --- MA'LUMOTLAR ---
 def load_data():
     try:
-        with open('users_db.json', 'r') as f:
+        with open('{}', 'r') as f:
             return json.load(f)
     except:
         return {}
         
 def save_data():
-    with open('users_db.json', 'w') as f:
+    with open('{}', 'w') as f:
         json.dump(user_data, f)
 
 user_data = load_data()
