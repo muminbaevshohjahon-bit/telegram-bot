@@ -44,7 +44,7 @@ CUSTOM_MOTIVATIONS = [
     "Bugun qilmaganing — ertaga pushaymon bo‘ladi.", "Kichik boshlashdan uyalmagin.",
     "Eng katta tavakkal — urinmaslik.", "Qo‘rquv seni to‘xtatmasin.",
     "O‘zingga sodiq bo‘l.", "Taslim bo‘lish — variant emas.",
-    "O‘zgarish sendan boshlanadi.", "Boshlagin. Hozir. Shu yerda."
+    "O‘zgarish sendan boshlanadi.", "Boshlagin. Hozir. Shu yerda.","Aqilli inson uchun har kuni yangi kun boshlanadi.","Kuchsizlar faqat taslim bo'ladi."
 ]
 
 FINISH_MOTIVATIONS = [
@@ -122,7 +122,7 @@ def get_day(message):
 def get_nick(message):
     uid = str(message.chat.id); user_data[uid]['info']['nickname'] = message.text
     user_data[uid]['step'] = 'main'; save_data()
-    bot.send_message(message.chat.id, "Tabrikleysh,Ro'yxatdan o'tildi!🔥", reply_markup=main_menu())
+    bot.send_message(message.chat.id, "Tabrikleyshn, Ro'yxatdan o'tildi!🔥", reply_markup=main_menu())
 
 # --- PESHQADAMLAR (ISHMAYOTGAN QISM TO'G'RILANDI) ---
 @bot.message_handler(func=lambda m: m.text == "Peshqadamlar 🏆")
