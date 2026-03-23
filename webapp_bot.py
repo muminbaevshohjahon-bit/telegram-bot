@@ -15,6 +15,10 @@ if hasattr(time, 'tzset'):
 TOKEN = os.getenv("TOKEN")
 bot = telebot.TeleBot(TOKEN)
 
+# --- ADMIN ID ---
+# O'zingizning ID raqamingizni kiriting
+ADMIN_ID = 6338204692 
+
 # --- MA'LUMOTLAR ---
 def load_data():
     try:
@@ -44,7 +48,8 @@ CUSTOM_MOTIVATIONS = [
     "Bugun qilmaganing — ertaga pushaymon bo‘ladi.", "Kichik boshlashdan uyalmagin.",
     "Eng katta tavakkal — urinmaslik.", "Qo‘rquv seni to‘xtatmasin.",
     "O‘zingga sodiq bo‘l.", "Taslim bo‘lish — variant emas.",
-    "O‘zgarish sendan boshlanadi.", "Boshlagin. Hozir. Shu yerda.","Aqilli inson uchun har kuni yangi kun boshlanadi.","Kuchsizlar faqat taslim bo'ladi."
+    "O‘zgarish sendan boshlanadi.", "Boshlagin. Hozir. Shu yerda.",
+    "Aqilli inson uchun har kuni yangi kun boshlanadi.","Kuchsizlar faqat taslim bo'ladi."
 ]
 
 FINISH_MOTIVATIONS = [
@@ -72,18 +77,16 @@ def get_user(uid):
 
 def main_menu():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    # ?v={random} kalendarni nollashtirishga yordam beradi
     web_url = f"https://muminbaevshohjahon-bit.github.io/telegram-bot/?v={random.randint(1, 999999)}"
     markup.add(KeyboardButton("Chellenjlar 🗓", web_app=WebAppInfo(url=web_url)))
     markup.add(KeyboardButton("Peshqadamlar 🏆"), KeyboardButton("Mening natijam 📊"))
     markup.add(KeyboardButton("Finish 🏁"))
     return markup
 
-# --- START VA REGISTRATSIYA (NOLLASHTIRISH SHU YERDA) ---
+# --- START VA REGISTRATSIYA ---
 @bot.message_handler(commands=['start'])
 def start(message):
     uid = str(message.chat.id)
-    # Foydalanuvchi start bossa, hamma narsasi nollanadi
     user_data[uid] = {'total_score': 0, 'history': [], 'completed_today': [], 'info': {}, 'step': 'get_name'}
     save_data()
     welcome_text = (
@@ -92,42 +95,52 @@ def start(message):
         "<b><i>Maqsadimiz 30 kunlik chellenj davomida intizomni shakllantirish.</i></b>\n\n"
         "Keling tanishib olaylik... Ismingizni kiriting:"
     )
-    bot.send_message(message.chat.id, welcome_text, parse_mode='HTML')
+    bot.send_message(uid, welcome_text, parse_mode='HTML')
 
 @bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_name')
 def get_name(message):
-    uid = str(message.chat.id); user_data[uid]['info']['name'] = message.text
-    user_data[uid]['step'] = 'get_year'; save_data()
+    uid = str(message.chat.id)
+    user_data[uid]['info']['name'] = message.text
+    user_data[uid]['step'] = 'get_year'
+    save_data()
     bot.send_message(message.chat.id, "Tug‘ilgan yilingiz (masalan: 2004):")
 
 @bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_year')
 def get_year(message):
-    uid = str(message.chat.id); user_data[uid]['info']['birth_year'] = message.text
-    user_data[uid]['step'] = 'get_month'; save_data()
+    uid = str(message.chat.id)
+    user_data[uid]['info']['birth_year'] = message.text
+    user_data[uid]['step'] = 'get_month'
+    save_data()
     bot.send_message(message.chat.id, "Tug‘ilgan oyingiz (masalan: Avgust):")
 
 @bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_month')
 def get_month(message):
-    uid = str(message.chat.id); user_data[uid]['info']['birth_month'] = message.text
-    user_data[uid]['step'] = 'get_day'; save_data()
+    uid = str(message.chat.id)
+    user_data[uid]['info']['birth_month'] = message.text
+    user_data[uid]['step'] = 'get_day'
+    save_data()
     bot.send_message(message.chat.id, "Tug‘ilgan kuningiz (masalan: 25):")
 
 @bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_day')
 def get_day(message):
-    uid = str(message.chat.id); user_data[uid]['info']['birth_day'] = message.text
-    user_data[uid]['step'] = 'get_nick'; save_data()
+    uid = str(message.chat.id)
+    user_data[uid]['info']['birth_day'] = message.text
+    user_data[uid]['step'] = 'get_nick'
+    save_data()
     bot.send_message(message.chat.id, "Nickname kiriting:")
 
 @bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_nick')
 def get_nick(message):
-    uid = str(message.chat.id); user_data[uid]['info']['nickname'] = message.text
-    user_data[uid]['step'] = 'main'; save_data()
+    uid = str(message.chat.id)
+    user_data[uid]['info']['nickname'] = message.text
+    user_data[uid]['step'] = 'main'
+    save_data()
     bot.send_message(message.chat.id, "Tabrikleyshn, Ro'yxatdan o'tildi!🔥", reply_markup=main_menu())
 
 # --- ADMIN PANEL FUNKSIYALARI ---
 @bot.message_handler(commands=['admin'])
 def admin_panel(message):
-    if message.chat.id == ADMIN_ID:
+    if message.chat.id == ADMIN_ID: 6338204692
         total = len(user_data)
         text = f"👨‍💻 <b>Admin Panel</b>\n\n👥 Jami foydalanuvchilar: {total}\n\n/users - Ro'yxat\n/db_download - Bazani yuklab olish"
         bot.send_message(message.chat.id, text, parse_mode='HTML')
@@ -146,9 +159,13 @@ def list_users(message):
 @bot.message_handler(commands=['db_download'])
 def send_db(message):
     if message.chat.id == ADMIN_ID:
-        with open('users_db.json', 'rb') as f:
-            bot.send_document(message.chat.id, f)
-# --- PESHQADAMLAR (ISHMAYOTGAN QISM TO'G'RILANDI) ---
+        try:
+            with open('users_db.json', 'rb') as f:
+                bot.send_document(message.chat.id, f)
+        except:
+            bot.send_message(message.chat.id, "Baza fayli topilmadi.")
+
+# --- PESHQADAMLAR ---
 @bot.message_handler(func=lambda m: m.text == "Peshqadamlar 🏆")
 def leaderboard(message):
     users = []
@@ -164,7 +181,6 @@ def leaderboard(message):
     text = "🏆 <b>Eng kuchli ishtirokchilar:</b>\n\n"
     for i, u in enumerate(users[:10], 1):
         text += f"{i}. {u['nick']} — {u['score']} ball\n"
-    
     bot.send_message(message.chat.id, text, parse_mode='HTML')
 
 # --- MENING NATIJAM ---
@@ -184,7 +200,7 @@ def my_stats(message):
     stat_text += f"\n🔥 Umumiy ball: {user.get('total_score', 0)}"
     bot.send_message(message.chat.id, stat_text, parse_mode='HTML')
 
-# --- FINISH (50% DAN PAST BO'LSA GIF JO'NATILMAYDI) ---
+# --- FINISH ---
 @bot.message_handler(func=lambda m: m.text == "Finish 🏁")
 def finish_day(message):
     user = get_user(message.chat.id)
@@ -195,26 +211,26 @@ def finish_day(message):
     
     percent = int((len(user.get('completed_today', [])) / TOTAL_TASKS) * 100)
     user.setdefault('history', []).append(f"{today}: {percent}%")
-    user['completed_today'] = []; save_data()
+    user['completed_today'] = []
+    save_data()
     
     if percent >= 50:
         motivation = random.choice(FINISH_MOTIVATIONS)
         bot.send_animation(message.chat.id, random.choice(GIFS), caption=f"🏁 Natija: {percent}%\n\n{motivation}", parse_mode='HTML')
     else:
-        # 50% dan past bo'lsa faqat matn
         bot.send_message(message.chat.id, f"🏁 Natija: {percent}%\n\nErtaga kuchliroq bo'lamiz! 💪", parse_mode='HTML')
 
-# --- SCHEDULER (NOTIFICATIONS & AUTO-FINISH) ---
+# --- SCHEDULER ---
 def auto_scheduler():
     while True:
         now = datetime.now().strftime("%H:%M")
         if now == "08:00":
-            for uid in user_data.keys():
+            for uid in list(user_data.keys()):
                 try: bot.send_message(uid, "☀️ Xayrli tong! Bugun 7 ta vazifani ham yoramizmi?")
                 except: pass
             time.sleep(61)
         if now == "21:00":
-            for uid in user_data.keys():
+            for uid in list(user_data.keys()):
                 try: bot.send_message(uid, "🔔 Kun yakunlanmoqda, Finish tugmasini bosishni unutmang!")
                 except: pass
             time.sleep(61)
