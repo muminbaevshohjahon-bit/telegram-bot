@@ -140,7 +140,7 @@ def get_nick(message):
 # --- ADMIN PANEL FUNKSIYALARI ---
 @bot.message_handler(commands=['admin'])
 def admin_panel(message):
-    if message.chat.id == ADMIN_ID: 6338204692
+    if message.chat.id == ADMIN_ID: 
         total = len(user_data)
         text = f"👨‍💻 <b>Admin Panel</b>\n\n👥 Jami foydalanuvchilar: {total}\n\n/users - Ro'yxat\n/db_download - Bazani yuklab olish"
         bot.send_message(message.chat.id, text, parse_mode='HTML')
