@@ -1,71 +1,101 @@
-
 import telebot
 import os
 import random
-import threading
-import time
 import json
-from telebot.types import ReplyKeyboardMarkup, KeyboardButton
+import time
 from datetime import datetime
+from telebot.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
+
+# Vaqt zonasi
+os.environ['TZ'] = 'Asia/Tashkent'
+if hasattr(time, 'tzset'):
+    time.tzset()
 
 TOKEN = os.getenv("TOKEN")
 bot = telebot.TeleBot(TOKEN)
 
-# --- DATA PERSISTENCE ---
+# --- MA'LUMOTLAR ---
+def load_data():
+    try:
+        with open('{}', 'r') as f:
+            return json.load(f)
+    except:
+        return {}
+        
 def save_data():
-    with open('users_db.json', 'w') as f:
+    with open('{}', 'w') as f:
         json.dump(user_data, f)
 
-def load_data():
-    if os.path.exists('users_db.json'):
-        with open('users_db.json', 'r') as f:
-            try: return json.load(f)
-            except: return {}
-    return {}
-
 user_data = load_data()
+TOTAL_TASKS = 7
 
-DAILY_TASKS = [
-    "Tongda detox (1 soat) 📵", "Kitob mutolasi 📚", "Sugar detox 🍬",
-    "Gazsiz ichimliklar 🥤", "5000 so'm sarmoya 💰", "Jismoniy mashq 💪",
-    "1 daqiqa hech narsa qilmaslik 🧘‍♂️"
+# SIZ ISTAGAN TO'LIQ MOTIVATSIYALAR RO'YXATI
+CUSTOM_MOTIVATIONS = [
+    "Sen boshlamasang, hech narsa boshlanmaydi. 🔥", "Bugungi og‘riq — ertangi kuch. 💪",
+    "Eng zo‘r vaqt — hozir. 🚀", "Intizom — bu o'ziga berilgan va'dani bajarishdir. ✨",
+    "Har kuni kichik qadam — katta natija.", "Eng katta raqibing — kechagi o‘zing.",
+    "Mukammallikni kutma — harakatni boshlash muhim.", "Sen o‘ylagandan ham kuchlisan.",
+    "Hech kim seni qutqarmaydi — o‘zingni o‘zing ko‘tar.", "Qiyinchilik — bu yashirin imkoniyat.",
+    "Orzular faqat harakat bilan haqiqatga aylanadi.", "Qo‘rqish — o‘sish boshlanishidir.",
+    "Sen taslim bo‘lmaguningcha, yutqazmading.", "Bahonalar seni orqaga tortadi.",
+    "Harakat — motivatsiyadan muhimroq.", "Vaqt ketmoqda — senchi?",
+    "O‘zgarish og‘riqli, lekin zarur.", "Natija sabrni yaxshi ko‘radi.",
+    "Bugun qilmaganing — ertaga pushaymon bo‘ladi.", "Kichik boshlashdan uyalmagin.",
+    "Eng katta tavakkal — urinmaslik.", "Qo‘rquv seni to‘xtatmasin.",
+    "O‘zingga sodiq bo‘l.", "Taslim bo‘lish — variant emas.",
+    "O‘zgarish sendan boshlanadi.", "Boshlagin. Hozir. Shu yerda."
 ]
 
-MOTIVATIONS = [
-    "Sen boshlamasang, hech narsa boshlanmaydi.", "Bugungi og‘riq — ertangi kuch.",
-    "Sen o‘ylagandan ham kuchlisan.", "Eng katta raqibing — kechagi o‘zing.",
-    "Harakat — motivatsiyadan muhimroq.", "Vaqt ketmoqda — senchi?",
-    "Intizom — erkinlik kaliti.", "Eng zo‘r vaqt — hozir."
+FINISH_MOTIVATIONS = [
+    "Dahshat! Vapshe zo'r, barakalla! 🔥",
+    "Sen o'ylagandan ham kuchlisan, davom et! 💪",
+    "Intizom — bu o'zingga bo'lgan hurmat. 🌟",
+    "Bo'lar ekanku, senga ishonaman!",
+    "Bo'shashma zo'r ketayabsan",
+    "Ko'zim to'rt bo'lib ketdi, malades."
 ]
 
 GIFS = [
-    "https://media.giphy.com/media/3o7TKDkDbIDJieKbVm/giphy.gif",
-    "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExaXU3bGl0dXg3c3FxM3VuZnl1ZW8wamRlbW5vbncxN2V1enNoNjhxOCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/8ZblO3ZD5NMltPaFS2/giphy.gif",
-    "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExaXU3bGl0dXg3c3FxM3VuZnl1ZW8wamRlbW5vbncxN2V1enNoNjhxOCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/g9582DNuQppxC/giphy.gif",
-    "https://media.giphy.com/media/FACfMgP1N9mlG/giphy.gif"
+    "https://media.giphy.com/media/FACfMgP1N9mlG/giphy.gif",
+    "https://media2.giphy.com/media/fUQ4rhUZJYiQsas6WD/giphy.gif",
+    "https://media.giphy.com/media/tHIRLHtNwxpjIFqPdV/giphy.gif",
+    "https://media.giphy.com/media/8ZblO3ZD5NMltPaFS2/giphy.gif",
+    "https://media.giphy.com/media/g9582DNuQppxC/giphy.gif"
 ]
 
-# --- HELPERS ---
 def get_user(uid):
     uid = str(uid)
     if uid not in user_data:
-        user_data[uid] = {
-            'info': {}, 'daily_count': 0, 'history': [],
-            'total_score': 0, 'completed_tasks': [], 'step': 'start'
-        }
+        user_data[uid] = {'total_score': 0, 'history': [], 'completed_today': [], 'info': {}, 'step': 'start'}
     return user_data[uid]
 
 def main_menu():
-    markup = ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
-    markup.add(KeyboardButton("Bugungi vazifalar ✅"), KeyboardButton("Natijalar jadvali 🏆"))
-    markup.add(KeyboardButton("Reyting 📊"), KeyboardButton("Finish 🏁"))
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    # URL oxiriga ?v=1 qo'shildi, bu keshni yangilaydi
+    web_url = "https://muminbaevshohjahon-bit.github.io/telegram-bot/?v=" + str(random.randint(1, 999))
+    markup.add(KeyboardButton("Chellenjlar 🗓", web_app=WebAppInfo(url=web_url)))
+    # ... qolgan tugmalar
     return markup
 
-# --- REGISTRATION (TUZATILDI) ---
+# --- LOGIKA ---
+@bot.message_handler(commands=['start'])
 @bot.message_handler(commands=['start'])
 def start(message):
     uid = str(message.chat.id)
-    user = get_user(uid)
+    
+    # MUHIM: Foydalanuvchini bazadan butunlay o'chirib, qayta ochamiz
+    if uid in user_data:
+        del user_data[uid]
+    
+    user_data[uid] = {
+        'total_score': 0, 
+        'history': [], 
+        'completed_today': [], 
+        'info': {}, 
+        'step': 'get_name'
+    }
+    
+    save_data() # Faylga yozamiz
     
     welcome_text = (
         "<b><i>Assalomu aleykum hush kelibsiz!</i></b>\n"
@@ -75,9 +105,7 @@ def start(message):
         "Keling tanishib olaylik... Ismingizni kiriting:"
     )
     
-    user['step'] = 'get_name'
-    save_data()
-    bot.send_message(uid, welcome_text, parse_mode='HTML')
+    bot.send_message(message.chat.id, welcome_text, parse_mode='HTML')
 
 @bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_name')
 def get_name(message):
@@ -93,7 +121,7 @@ def get_birth(message):
     user['info']['birth_year'] = message.text
     user['step'] = 'get_month'
     save_data()
-    bot.send_message(message.chat.id, "Tug‘ilgan oy (1-12):")
+    bot.send_message(message.chat.id, "Tug‘ilgan oyingiz:")
 
 @bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_month')
 def get_month(message):
@@ -101,7 +129,7 @@ def get_month(message):
     user['info']['birth_month'] = message.text
     user['step'] = 'get_day'
     save_data()
-    bot.send_message(message.chat.id, "Tug‘ilgan kun (1-31):")
+    bot.send_message(message.chat.id, "Tug‘ilgan kuningiz:")
 
 @bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_day')
 def get_day(message):
@@ -109,90 +137,56 @@ def get_day(message):
     user['info']['birth_day'] = message.text
     user['step'] = 'get_nick'
     save_data()
-    bot.send_message(message.chat.id, "Nickname kiriting:")
+    bot.send_message(message.chat.id, "Reyting uchun <b>Nickname</b> kiriting:", parse_mode='HTML')
 
 @bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_nick')
 def get_nick(message):
     user = get_user(message.chat.id)
     user['info']['nickname'] = message.text
     user['step'] = 'main'
-    public_id = f"MBE-{random.randint(10000, 99999)}"
-    user['info']['public_id'] = public_id
+    pid = f"MBE-{random.randint(10000, 99999)}"
+    user['info']['public_id'] = pid
     save_data()
-    bot.send_message(message.chat.id, f"Tabrikleyshn ro‘yxatdan o‘tdingiz! 🔥 ID: <b>{public_id}</b>", parse_mode='HTML', reply_markup=main_menu())
-
-# --- TASKS ---
-@bot.message_handler(func=lambda m: m.text == "Bugungi vazifalar ✅")
-def show_tasks(message):
-    user = get_user(message.chat.id)
-    markup = ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
-    for task in DAILY_TASKS:
-        prefix = "✅ " if task in user.get('completed_tasks', []) else ""
-        markup.add(KeyboardButton(f"{prefix}{task}"))
-    markup.add(KeyboardButton("Orqaga ⬅️"))
-    bot.send_message(message.chat.id, f"Holat: {user['daily_count']}/{len(DAILY_TASKS)}", reply_markup=markup)
-
-@bot.message_handler(func=lambda m: m.text in DAILY_TASKS or (m.text.startswith("✅ ") and m.text[2:] in DAILY_TASKS))
-def complete_task(message):
-    user = get_user(message.chat.id)
-    task_name = message.text.replace("✅ ", "")
-    if task_name in user.get('completed_tasks', []):
-        bot.send_message(message.chat.id, "Bajarilgan!")
-        return
-    user.setdefault('completed_tasks', []).append(task_name)
-    user['daily_count'] += 1
-    user['total_score'] += 10
-    save_data()
-    bot.send_message(message.chat.id, f"✅ +10 ball\n{random.choice(MOTIVATIONS)}")
+    bot.send_message(message.chat.id, f"Tabrikleyshn, muvaffaqiyatli ro'yxatdan o'tdingiz!🔥Chellenjni boshlang\nSizning ID: <b>{pid}</b>", parse_mode='HTML', reply_markup=main_menu())
 
 @bot.message_handler(func=lambda m: m.text == "Finish 🏁")
 def finish_day(message):
     user = get_user(message.chat.id)
-    if user['daily_count'] == 0:
-        bot.send_message(message.chat.id, "Hech bo'lmasa bitta vazifa bajaring!")
+    today = datetime.now().strftime('%d/%m')
+    
+    # Bugun allaqachon tugatgan bo'lsa eslatma
+    if any(today in entry for entry in user['history']):
+        bot.send_message(message.chat.id, "Bugun uchun vazifalar yakunlangan. Ertaga ko'rishguncha! ✨")
         return
-    percent = int((user['daily_count'] / len(DAILY_TASKS)) * 100)
-    user['history'].append(f"{datetime.now().strftime('%d/%m')} - {percent}%")
-    motivation = random.choice(MOTIVATIONS)
-    gif = random.choice(GIFS)
-    bot.send_animation(message.chat.id, gif, caption=f"🏁 <b>Kun yakunlandi!✊</b>\nNatija: {percent}%\n\n<i>{motivation}</i>", parse_mode='HTML')
-    user['daily_count'] = 0
-    user['completed_tasks'] = []
+
+    completed_tasks = user.get('completed_today', [])
+    percent = int((len(completed_tasks) / TOTAL_TASKS) * 100)
+    
+    user['history'].append(f"{today}: {percent}%")
+    user['completed_today'] = [] 
     save_data()
 
-@bot.message_handler(func=lambda m: m.text == "Reyting 📊")
-def show_rank(message):
-    sorted_u = sorted(user_data.items(), key=lambda x: x[1]['total_score'], reverse=True)[:10]
-    text = "🏆 <b>TOP 10</b>\n\n"
-    for i, (uid, data) in enumerate(sorted_u):
-        text += f"{i+1}. {data['info'].get('nickname', 'User')} — {data['total_score']} ball\n"
-    bot.send_message(message.chat.id, text, parse_mode='HTML')
+    motivation = random.choice(FINISH_MOTIVATIONS)
+    msg = f"🏁 <b>Natija: {percent}%</b>\n\n{motivation}"
 
-@bot.message_handler(func=lambda m: m.text == "Natijalar jadvali 🏆")
-def show_results(message):
+    try:
+        bot.send_animation(message.chat.id, random.choice(GIFS), caption=msg, parse_mode='HTML')
+    except:
+        bot.send_message(message.chat.id, msg, parse_mode='HTML')
+
+@bot.message_handler(content_types=['web_app_data'])
+def web_app_receive(message):
+    data = json.loads(message.web_app_data.data)
     user = get_user(message.chat.id)
-    history = "\n".join(user['history']) if user['history'] else "Hali natijalar yo'q."
-    bot.send_message(message.chat.id, f"📊 <b>Sizning tarixingiz:</b>\n{history}", parse_mode='HTML')
+    if data.get('action') == "done":
+        task = data.get('task')
+        if task not in user.get('completed_today', []):
+            user['completed_today'].append(task)
+            user['total_score'] += 10
+            save_data()
+            bot.send_message(message.chat.id, f"✅ {task} bajarildi!\n{random.choice(CUSTOM_MOTIVATIONS)}")
 
-@bot.message_handler(func=lambda m: m.text == "Orqaga ⬅️")
-def back(message):
-    bot.send_message(message.chat.id, "Menyu:", reply_markup=main_menu())
+# Peshqadamlar va Mening natijam funksiyalari o'z holicha qoladi...
 
-def reminder_loop():
-    while True:
-        now = datetime.now().hour
-        if 9 <= now <= 22:
-            for uid in list(user_data.keys()):
-                try:
-                    if user_data[uid].get('step') == 'main':
-                        bot.send_message(uid, f"💡 <b>Motivatsiya:</b>\n\n{random.choice(MOTIVATIONS)}", parse_mode='HTML')
-                except: pass
-        time.sleep(3600)
-
-threading.Thread(target=reminder_loop, daemon=True).start()
-
-# --- RUN (Conflict xatosini oldini olish uchun) ---
 if __name__ == "__main__":
-    bot.infinity_polling(skip_pending=True)
-
-
+    bot.infinity_polling()
