@@ -127,7 +127,7 @@ def main_menu(): # Qavs ichi bo'sh bo'lsin
 def start(message):
     uid = str(message.chat.id)
     
-    # 1. Foydalanuvchi ma'lumotlarini xotirada to'liq nollaymiz
+    # 1. Lug'atni bot xotirasida tozalaymiz
     user_data[uid] = {
         'total_score': 0, 
         'history': [], 
@@ -136,19 +136,18 @@ def start(message):
         'step': 'get_name'
     }
     
-    # 2. DIQQAT: O'zgarishni darhol users_db.json fayliga yozamiz
+    # 2. MUHIM: Faylga darhol yozish (Nollanganini qat'iy saqlaydi)
     save_data() 
     
     welcome_text = (
-        "<b><i>Assalomu aleykum xush kelibsiz!</i></b>\n"
+        "<b><i>Assalomu aleykum hush kelibsiz!</i></b>\n"
         "<b><i>Men MBE useful tomonidan yaratilgan botman!</i></b>\n\n"
         "<b><i>Maqsadimiz 30 kunlik chellenj davomida intizomni shakllantirish.</i></b>\n"
         "<b><i>Balki foydasi tegar...</i></b>\n\n"
         "Keling tanishib olaylik... Ismingizni kiriting:"
     )
     
-    # Navbatdagi qadamni ham saqlab qo'yamiz
-    save_data()
+    bot.send_message(message.chat.id, welcome_text, parse_mode='HTML')
     
     bot.send_message(message.chat.id, welcome_text, parse_mode='HTML')
 @bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_name')
@@ -190,8 +189,17 @@ def get_nick(message):
     user['step'] = 'main'
     pid = f"MBE-{random.randint(10000, 99999)}"
     user['info']['public_id'] = pid
+    
+    # Ma'lumotlarni saqlaymiz
     save_data()
-    bot.send_message(message.chat.id, f"Tabrikleyshn,muvaffaqiyatli ro'yxatdan o'tdingiz!🔥Chellenjni boshlang\nSizning ID: <b>{pid}</b>", parse_mode='HTML', reply_markup=main_menu())
+    
+    # main_menu() ichida argument bo'lmasligi kerak (yoki uni yuqorida def main_menu(): deb tekshiring)
+    bot.send_message(
+        message.chat.id, 
+        f"Tabrikleyshn, muvaffaqiyatli ro'yxatdan o'tdingiz!🔥\nSizning ID: <b>{pid}</b>", 
+        parse_mode='HTML', 
+        reply_markup=main_menu()
+    )
 
 @bot.message_handler(func=lambda m: m.text == "Peshqadamlar 🏆")
 def leaderboard(message):
