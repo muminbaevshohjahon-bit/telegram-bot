@@ -130,8 +130,8 @@ def main_menu():
     
     return markup
 # --- LOGIKA ---
-@bot.message_handler(commands=['reset_me'])
-def reset_user(message):
+@bot.message_handler(commands=['start'])
+def start(message):
     uid = str(message.chat.id)
     # Ma'lumotlarni nollash
     user_data[uid] = {'total_score': 0, 'history': [], 'completed_today': [], 'info': {}, 'step': 'get_name'}
@@ -271,6 +271,5 @@ def web_app_receive(message):
             save_data()
             bot.send_message(message.chat.id, f"✅ {task} bajarildi!\n{random.choice(CUSTOM_MOTIVATIONS)}")
             # Tepadagi funksiyadan keyin 2 ta bo'sh qator tashlang
-
 if __name__ == "__main__":
     bot.infinity_polling()
