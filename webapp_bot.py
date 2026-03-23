@@ -267,3 +267,5 @@ def web_app_receive(message):
             user['total_score'] += 10
             save_data()
             bot.send_message(message.chat.id, f"✅ {task} bajarildi!\n{random.choice(CUSTOM_MOTIVATIONS)}")
+            if __name__ == "__main__":
+    bot.infinity_polling()
