@@ -1,38 +1,4 @@
-<!DOCTYPE html>
-<html lang="uz">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MBE Useful</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        :root { --bg: #1c1c1e; --card: #2c2c2e; --accent: #34c759; --text: #ffffff; }
-        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 15px; margin: 0; }
-        .challenge-card { background: var(--card); padding: 18px; border-radius: 15px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #3a3a3c; cursor: pointer; }
-        .calendar-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 15px; }
-        .day-box { aspect-ratio: 1; background: var(--card); border-radius: 10px; display: flex; align-items: center; justify-content: center; border: 1px solid #3a3a3c; opacity: 0.4; transition: 0.3s; }
-        .day-box.active { border-color: var(--accent); opacity: 1; font-weight: bold; border-width: 2px; }
-        .day-box.done { background: var(--accent); color: black; opacity: 1; border: none; font-weight: bold; }
-        .back-btn { background: var(--card); color: white; border: none; padding: 12px; border-radius: 10px; width: 100%; margin-bottom: 15px; font-weight: bold; cursor: pointer; }
-        #calendarView { display: none; }
-        h2 { color: var(--accent); }
-    </style>
-</head>
-<body>
-
-    <div id="mainView">
-        <h2 id="userName">Salom!</h2>
-        <div id="challengeList"></div>
-    </div>
-
-    <div id="calendarView">
-        <button class="back-btn" onclick="showMain()">⬅️ Orqaga</button>
-        <h2 id="calTitle">Vazifa</h2>
-        <p style="font-size: 12px; opacity: 0.7;">Faqat joriy kunni belgilashingiz mumkin.</p>
-        <div class="calendar-grid" id="calendarGrid"></div>
-    </div>
-
-    <script>
+<script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
@@ -48,10 +14,9 @@
             document.getElementById('calendarView').style.display = 'none';
         }
 
-        // --- XATO TUZATILDI: Funksiya oxirida chaqiriladi ---
         function init() {
             const list = document.getElementById('challengeList');
-            list.innerHTML = ''; // Tozalash
+            list.innerHTML = ''; 
             tasks.forEach(t => {
                 const card = document.createElement('div');
                 card.className = 'challenge-card';
@@ -79,7 +44,6 @@
                 
                 const key = `t_${name.replace(/\s/g, '')}_d_${i}`;
                 
-                // Oldindan bajarilgan bo'lsa rangini saqlash
                 if (localStorage.getItem(key) === 'done') {
                     day.classList.add('done');
                 }
@@ -88,7 +52,6 @@
                     day.classList.add('active');
                 }
 
-                // --- XATO TUZATILDI: Element gridga qo'shildi ---
                 grid.appendChild(day);
 
                 day.onclick = () => {
@@ -96,9 +59,10 @@
                         const isDone = day.classList.toggle('done');
                         localStorage.setItem(key, isDone ? 'done' : 'not_done');
                         
-                        // Telegram botga ma'lumot yuborish (ixtiyoriy)
                         if (isDone) {
                             tg.HapticFeedback.notificationOccurred('success');
+                            // Botga ma'lumot yuborish (Finish foizi uchun)
+                            tg.sendData(name); 
                         }
                     } else {
                         tg.showAlert("Faqat bugungi kunni belgilash mumkin!");
@@ -107,4 +71,7 @@
             }
         }
 
-        // --- ASOSIY TUZATISH: Sahifa yuklanganda funksiyani ishga
+        // --- ENGI MUHIM QISMI: Sahifa yuklanganda funksiyani ishga tushirish ---
+        window.onload = init;
+    </script>
+    
