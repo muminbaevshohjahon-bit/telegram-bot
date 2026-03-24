@@ -17,7 +17,7 @@ bot = telebot.TeleBot(TOKEN)
 
 # --- ADMIN & CHANNEL ---
 ADMIN_ID = 6338204692
-CHANNEL_ID = "@Maybe_its_useful"  # Kanal username yoki ID
+CHANNEL_ID = "@caffeinefan"  # Kanal username yoki ID
 
 # --- MA'LUMOTLAR ---
 def load_data():
@@ -102,14 +102,27 @@ def check_subscription(user_id):
 @bot.message_handler(commands=['start'])
 def start(message):
     uid = message.chat.id
+    user = get_user(uid)
+    
+    # Kanalga obuna bo'lish tekshiruvi
     if not check_subscription(uid):
-        bot.send_message(uid, f"⚠️ Botdan foydalanish uchun kanalimizga obuna bo‘ling: {CHANNEL_ID}")
+        bot.send_message(uid, f"⚠️ Botdan foydalanish uchun kanalimizga obuna bo‘ling: {CHANNEL_ID}\n\nObuna bo‘lganingizdan so‘ng /start qayta bosing.")
+        user['step'] = 'waiting_subscription'
+        save_data()
         return
 
-    user_data[str(uid)] = {'total_score': 0, 'history': [], 'completed_today': [], 'info': {}, 'step': 'get_name'}
+    # Agar foydalanuvchi avvaldan ro'yxatdan o'tgan bo'lsa
+    if user['step'] == 'main':
+        bot.send_message(uid, "Siz allaqachon ro'yxatdan o'tgansiz!", reply_markup=main_menu())
+        return
+
+    # Ro'yxatdan boshlash
+    user['step'] = 'get_name'
+    user['info'] = {}  # info bo'shatamiz, yangi start
     save_data()
+
     welcome_text = (
-        "<b><i>Assalomu aleykum hush kelibsiz!</i></b>\n"
+        "<b><i>Assalomu aleykum, hush kelibsiz!</i></b>\n"
         "<b><i>Men MBE useful tomonidan yaratilgan botman!</i></b>\n\n"
         "<b><i>Maqsadimiz 30 kunlik chellenj davomida intizomni shakllantirish.</i></b>\n\n"
         "Keling tanishib olaylik... Ismingizni kiriting:"
@@ -254,6 +267,7 @@ def finish_day(message):
 
 # --- SCHEDULER ---
 def auto_scheduler():
+    threading.Thread(target=check_subscription_periodically, daemon=True).start()
     while True:
         now = datetime.now().strftime("%H:%M")
         if now == "08:00":
@@ -308,6 +322,35 @@ def web_app_receive(message):
                     message.chat.id,
                     f"✅ {task} bajarildi!\n+10 ball\n\n{random.choice(CUSTOM_MOTIVATIONS)}"
                 )
-
+def check_subscription_periodically():
+    while True:
+        for uid, user in user_data.items():
+            if user.get('step') == 'waiting_subscription':
+                if check_subscription(uid):
+                    user['step'] = 'get_name'
+                    save_data()
+                    # Avtomatik xabar jo'natish
+                    bot.send_message(uid, "🎉 Rahmat! Endi botdan foydalana olasiz!")
+                    # Qoidalarni jo'natish
+                    rules_text = (
+                        "📜 <b>Qoidalar:</b>\n\n"
+                        "Botga start bosib registratsiyadan so‘ng chellenjni boshlash mumkin.\n\n"
+                        "1) Kitob mutolaasi\n"
+                        "2) Jismoniy mashq\n"
+                        "3) Shakarsiz hayot\n"
+                        "4) 5000 so‘mdan sarmoya\n"
+                        "5) Gazsiz ichimlik\n"
+                        "6) Tongda detoks\n"
+                        "7) 2 daqiqa sukunat\n"
+                        "8) DEEP WORK (chalg'imasdan 25 daqiqa ishlash)\n\n"
+                        "Xamma topshiriq sodda, minimalini bajarish talab qilinadi. "
+                        "Jismoniy mashq – har qanday yurish yoki 10 ta otdjimaniya, "
+                        "detoks – uyg‘ongach kamida 1 soat telefonni ishlatmang, "
+                        "sarmoya – kuniga 5000 so‘m, yig‘ing yoki IMAN omonatiga qo‘ying.\n\n"
+                        "Biz sizni toqatingizdan ortig‘iga majbur qilmaymiz 😊"
+                    )
+                    bot.send_message(uid, rules_text, parse_mode='HTML')
+        time.sleep(30)  # 30 soniyada bir tekshiradi
+        
 if __name__ == "__main__":
     bot.infinity_polling()
