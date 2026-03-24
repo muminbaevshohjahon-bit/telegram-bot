@@ -294,7 +294,7 @@ def auto_scheduler():
             time.sleep(61)
         time.sleep(30)
 
-threading.Thread(target=auto_scheduler, daemon=True).start()
+threading.Thread(target=check_subscription_periodically, daemon=True).start()
 
 # --- WEBAPP ---
 @bot.message_handler(content_types=['web_app_data'])
@@ -322,6 +322,7 @@ def web_app_receive(message):
                     message.chat.id,
                     f"✅ {task} bajarildi!\n+10 ball\n\n{random.choice(CUSTOM_MOTIVATIONS)}"
                 )
+# --- SUBSCRIPTION CHECKER ---
 def check_subscription_periodically():
     while True:
         for uid, user in user_data.items():
@@ -329,9 +330,7 @@ def check_subscription_periodically():
                 if check_subscription(uid):
                     user['step'] = 'get_name'
                     save_data()
-                    # Avtomatik xabar jo'natish
                     bot.send_message(uid, "🎉 Rahmat! Endi botdan foydalana olasiz!")
-                    # Qoidalarni jo'natish
                     rules_text = (
                         "📜 <b>Qoidalar:</b>\n\n"
                         "Botga start bosib registratsiyadan so‘ng chellenjni boshlash mumkin.\n\n"
@@ -350,7 +349,7 @@ def check_subscription_periodically():
                         "Biz sizni toqatingizdan ortig‘iga majbur qilmaymiz 😊"
                     )
                     bot.send_message(uid, rules_text, parse_mode='HTML')
-        time.sleep(30)  # 30 soniyada bir tekshiradi
+        time.sleep(10)  # har 10 soniyada tekshiradi
         
 if __name__ == "__main__":
     bot.infinity_polling()
