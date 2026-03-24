@@ -121,8 +121,14 @@ def start(message):
         return
     user['step'] = 'get_name'
     save_data()
-    welcome_text = "<b><i>Assalomu aleykum, hush kelibsiz!</i></b>\nKeling tanishib olaylik... Ismingizni kiriting:"
+      welcome_text = (
+        "<b><i>Assalomu aleykum, hush kelibsiz!</i></b>\n"
+        "<b><i>Men MBE useful tomonidan yaratilgan botman!</i></b>\n\n"
+        "<b><i>Maqsadimiz 30 kunlik chellenj davomida intizomni shakllantirish.</i></b>\n\n"
+        "Keling tanishib olaylik... Ismingizni kiriting:"
+    )
     bot.send_message(uid, welcome_text, parse_mode='HTML')
+
 
 @bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_name')
 def get_name(message):
