@@ -5,7 +5,7 @@ import json
 import threading
 import time
 from datetime import datetime
-from telebot.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
+from telebot.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
 
 # Vaqt zonasi
 os.environ['TZ'] = 'Asia/Tashkent'
@@ -15,12 +15,11 @@ if hasattr(time, 'tzset'):
 TOKEN = os.getenv("TOKEN")
 bot = telebot.TeleBot(TOKEN)
 
-# --- KONFIGURATSIYA ---
 ADMIN_ID = 6338204692 
 CHANNELS = ["@mbe_useful"] 
 TOTAL_TASKS = 8 
 
-# --- MA'LUMOTLAR BILAN ISHLASH ---
+# --- DATA ---
 def load_data():
     try:
         with open('users_db.json', 'r') as f:
@@ -68,49 +67,93 @@ GIFS = [
     "https://media.giphy.com/media/g9582DNuQppxC/giphy.gif"
 ]
 
-# --- YORDAMCHI FUNKSIYALAR ---
+
+
+# --- HELPERS ---
 def check_sub(uid):
     for channel in CHANNELS:
         try:
             status = bot.get_chat_member(channel, uid).status
             if status in ['left', 'kicked']:
                 return False
-        except Exception:
-            continue 
+        except Exception as e:
+            print("SUB ERROR:", e)
+            return False
     return True
 
 def get_user(uid):
     uid = str(uid)
     if uid not in user_data:
-        user_data[uid] = {'total_score': 0, 'history': [], 'completed_today': [], 'info': {}, 'step': 'start'}
+        user_data[uid] = {
+            'total_score': 0,
+            'history': [],
+            'completed_today': [],
+            'info': {},
+            'step': 'start'
+        }
     return user_data[uid]
 
 def main_menu(uid):
     uid = str(uid)
     user = get_user(uid)
+
     current_day = len(user.get('history', [])) + 1
-    if current_day > 30: current_day = 30
-    
+    if current_day > 30:
+        current_day = 30
+
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    web_url = f"https://muminbaevshohjahon-bit.github.io/telegram-bot/?day={current_day}&v={random.randint(1, 999999)}"
-    
+
+    web_url = f"https://muminbaevshohjahon-bit.github.io/telegram-bot/?day={current_day}&v={random.randint(1,999999)}"
+
     markup.add(KeyboardButton("Chellenjlar🗓", web_app=WebAppInfo(url=web_url)))
     markup.add(KeyboardButton("Peshqadamlar 🏆"), KeyboardButton("Mening natijam 📊"))
     markup.add(KeyboardButton("Finish 🏁"))
+
     if int(uid) == ADMIN_ID:
         markup.add(KeyboardButton("/admin 👨‍💻"))
+
     return markup
 
-# --- ESLATMALAR (REMINDERS) ---
+# --- WEB APP DATA (FIX QILINGAN) ---
+@bot.message_handler(content_types=['web_app_data'])
+def web_app_receive(message):
+    uid = str(message.chat.id)
+    user = get_user(uid)
+
+    try:
+        data = json.loads(message.web_app_data.data)  # ✅ JSON parse
+        task_id = data.get("task")
+        day = data.get("day")
+    except:
+        return
+
+    key = f"{task_id}_{day}"  # ✅ unique key
+
+    if key not in user.get('completed_today', []):
+        user.setdefault('completed_today', []).append(key)
+        user['total_score'] = user.get('total_score', 0) + 10
+
+        save_data()
+
+        # ✅ GIF + motivatsiya qo‘shildi
+        gif = random.choice(GIFS)
+        motivation = random.choice(FINISH_MOTIVATIONS)
+
+        bot.send_animation(
+            uid,
+            gif,
+            caption=f"{motivation}\n\n+10 ball 🔥"
+        )
+
+# --- REMINDER (o‘zgartirmadim faqat xavfsiz qildim) ---
 def reminder_thread():
     while True:
         now = datetime.now().strftime("%H:%M")
-        # Ertalabki va kechki eslatmalar
         if now in ["08:00", "12:00", "18:00", "21:00"]:
             msg = random.choice(CUSTOM_MOTIVATIONS)
             for uid in list(user_data.keys()):
                 try:
-                    bot.send_message(uid, f"🔔 <b>Eslatma:</b>\n\n{msg}", parse_mode='HTML')
+                    bot.send_message(uid, f"🔔 {msg}")
                 except:
                     continue
             time.sleep(61)
@@ -118,32 +161,29 @@ def reminder_thread():
 
 threading.Thread(target=reminder_thread, daemon=True).start()
 
-# --- START VA REGISTRATSIYA ---
+# --- START ---
 @bot.message_handler(commands=['start'])
 def start(message):
     uid = message.chat.id
     user = get_user(uid)
-    
-    # Agar foydalanuvchi ismini kiritgan bo'lsa, unga menyuni yuborish
-    if user.get('info', {}).get('name'):
-        bot.send_message(
-            uid, 
-            "Xush kelibsiz! Vazifalarni bajarishda davom eting.", 
-            reply_markup=main_menu(uid) # <--- BU QATOR KEYBOARDNI CHIQARADI
-        )
-        return
 
-    user_data[str(uid)]['step'] = 'get_name'
-    save_data()
-    
-    welcome_text = (
-        "<b><i>Assalomu aleykum xush kelibsiz!</i></b>\n"
-        "<b><i>Men MBE useful tomonidan yaratilgan botman!</i></b>\n\n"
-        "<b><i>Maqsadimiz 30 kunlik chellenj davomida intizomni shakllantirish.</i></b>\n\n"
-        "Keling tanishib olaylik... Ismingizni kiriting:"
-    )
-    bot.send_message(uid, welcome_text, parse_mode='HTML')
+ if user.get('info', {}).get('name'):
+    bot.send_message(uid, "Xush kelibsiz!", reply_markup=main_menu(uid))
+    return
 
+user_data[str(uid)]['step'] = 'get_name'
+save_data()
+
+welcome_text = (
+    " <b><i>Assalomu alaykum, xush kelibsiz!</i></b>\n\n"
+    " <b>MBE Useful botiga xush kelibsiz</b>\n\n"
+    " <i>Maqsadimiz — 30 kun davomida intizomni shakllantirish</i>\n\n"
+    " <b>Keling, boshlaymiz!</b>\n"
+    "Ismingizni kiriting:"
+)
+
+bot.send_message(uid, welcome_text, parse_mode='HTML')
+# --- REG ---
 @bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_name')
 def get_name(message):
     uid = str(message.chat.id)
@@ -166,70 +206,59 @@ def get_nick(message):
     user_data[uid]['info']['nickname'] = message.text
     user_data[uid]['step'] = 'main'
     save_data()
-    bot.send_message(uid, "Tabrikleyshn, ro'yxatdan o'tildi!🔥", reply_markup=main_menu(uid))
+    bot.send_message(uid, "Ro‘yxatdan o‘tildi! 🔥", reply_markup=main_menu(uid))
 
-# --- PESHQADAMLAR ---
+# --- LEADERBOARD ---
 @bot.message_handler(func=lambda m: m.text == "Peshqadamlar 🏆")
 def leaderboard(message):
-    if not check_sub(message.chat.id): return
+    if not check_sub(message.chat.id):
+        return
+
     sorted_users = sorted(user_data.items(), key=lambda x: x[1].get('total_score', 0), reverse=True)
-    leader_text = "🏆 <b>Eng kuchli intizom egalari:</b>\n\n"
+
+    text = "🏆 TOP:\n\n"
     for i, (uid, data) in enumerate(sorted_users[:10], 1):
-        name = data.get('info', {}).get('name', "Foydalanuvchi")
+        name = data.get('info', {}).get('name', "User")
         score = data.get('total_score', 0)
-        medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else f"{i}."
-        leader_text += f"{medal} <b>{name}</b> — {score} ball\n"
-    bot.send_message(message.chat.id, leader_text, parse_mode='HTML')
+        text += f"{i}. {name} — {score}\n"
 
-# --- NATIJALAR VA FINISH ---
+    bot.send_message(message.chat.id, text)
+
+# --- STATS ---
 @bot.message_handler(func=lambda m: m.text == "Mening natijam 📊")
-def my_stats(message):
-    if not check_sub(message.chat.id): return
-    user = get_user(message.chat.id)
-    history = user.get('history', [])
-    stat_text = "📊 <b>Haftalik natijalar:</b>\n\n"
-    if not history: 
-        stat_text += "Hali natija yo'q."
-    else:
-        for entry in history[-7:]:
-            try:
-                day, res = entry.split(": ")
-                p_val = int(res.replace('%', ''))
-                bar = "🟦" * (p_val // 10) + "⬜️" * (10 - (p_val // 10))
-                stat_text += f"<code>{day}</code> {bar} <b>{p_val}%</b>\n"
-            except: continue
-    stat_text += f"\n🔥 Umumiy ball: {user.get('total_score', 0)}"
-    bot.send_message(message.chat.id, stat_text, parse_mode='HTML')
+def stats(message):
+    if not check_sub(message.chat.id):
+        return
 
+    user = get_user(message.chat.id)
+
+    percent = int((len(set(user.get('completed_today', []))) / TOTAL_TASKS) * 100)
+
+    bot.send_message(message.chat.id, f"Bugungi natija: {percent}%")
+
+# --- FINISH ---
 @bot.message_handler(func=lambda m: m.text == "Finish 🏁")
-def finish_day(message):
-    if not check_sub(message.chat.id): return
+def finish(message):
+    if not check_sub(message.chat.id):
+        return
+
     uid = str(message.chat.id)
     user = get_user(uid)
+
     today = datetime.now().strftime('%d/%m')
-    if any(today in entry for entry in user.get('history', [])):
-        bot.send_message(uid, "Bugun yakunlab bo'lingan! ✨")
+
+    if any(today in h for h in user.get('history', [])):
+        bot.send_message(uid, "Bugun allaqachon yopilgan!")
         return
-    percent = int((len(user.get('completed_today', [])) / TOTAL_TASKS) * 100)
+
+    percent = int((len(set(user.get('completed_today', []))) / TOTAL_TASKS) * 100)
+
     user.setdefault('history', []).append(f"{today}: {percent}%")
     user['completed_today'] = []
+
     save_data()
-    bot.send_message(uid, f"🏁 Kunlik natija: {percent}% saqlandi!", reply_markup=main_menu(uid))
 
-# --- ADMIN PANEL ---
-@bot.message_handler(commands=['admin'])
-def admin_panel(message):
-    if message.chat.id == ADMIN_ID:
-        bot.send_message(message.chat.id, f"👥 Jami foydalanuvchilar: {len(user_data)}\n/db_download - Bazani yuklash")
+    bot.send_message(uid, f"Kun yopildi: {percent}%", reply_markup=main_menu(uid))
 
-@bot.message_handler(commands=['db_download'])
-def db_download(message):
-    if message.chat.id == ADMIN_ID:
-        try:
-            with open('users_db.json', 'rb') as f:
-                bot.send_document(message.chat.id, f)
-        except:
-            bot.send_message(message.chat.id, "Fayl topilmadi.")
-
-if __name__ == "__main__":
-    bot.infinity_polling()
+# --- RUN ---
+bot.infinity_polling()
