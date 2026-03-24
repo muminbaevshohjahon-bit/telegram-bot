@@ -18,7 +18,7 @@ bot = telebot.TeleBot(TOKEN)
 # --- KONFIGURATSIYA ---
 ADMIN_ID = 6338204692 
 CHANNELS = ["@mbe_useful"] 
-TOTAL_TASKS = 8 # 7 ta odatiy + 1 ta uyqu vazifasi
+TOTAL_TASKS = 8 
 
 # --- MA'LUMOTLAR BILAN ISHLASH ---
 def load_data():
@@ -34,7 +34,6 @@ def save_data():
 
 user_data = load_data()
 
-# MOTIVATSIYALAR
 CUSTOM_MOTIVATIONS = [
     "Sen boshlamasang, hech narsa boshlanmaydi. 🔥", "Bugungi og‘riq — ertangi kuch. 💪",
     "Eng zo‘r vaqt — hozir. 🚀", "Intizom — bu o'ziga berilgan va'dani bajarishdir. ✨",
@@ -61,17 +60,16 @@ FINISH_MOTIVATIONS = [
     "Ko'zim to'rt bo'lib ketdi, malades."
 ]
 
-
 GIFS = [
-   "https://media.giphy.com/media/FACfMgP1N9mlG/giphy.gif",
-   "https://media2.giphy.com/media/fUQ4rhUZJYiQsas6WD/giphy.gif",
-   "https://media.giphy.com/media/tHIRLHtNwxpjIFqPdV/giphy.gif",
-   "https://media.giphy.com/media/8ZblO3ZD5NMltPaFS2/giphy.gif"
+    "https://media.giphy.com/media/FACfMgP1N9mlG/giphy.gif",
+    "https://media2.giphy.com/media/fUQ4rhUZJYiQsas6WD/giphy.gif",
+    "https://media.giphy.com/media/tHIRLHtNwxpjIFqPdV/giphy.gif",
+    "https://media.giphy.com/media/8ZblO3ZD5NMltPaFS2/giphy.gif",
+    "https://media.giphy.com/media/g9582DNuQppxC/giphy.gif"
 ]
 
 # --- YORDAMCHI FUNKSIYALAR ---
 def check_sub(uid):
-    """Obunani qat'iy tekshirish"""
     for channel in CHANNELS:
         try:
             status = bot.get_chat_member(channel, uid).status
@@ -88,14 +86,37 @@ def get_user(uid):
     return user_data[uid]
 
 def main_menu(uid):
+    uid = str(uid)
+    user = get_user(uid)
+    current_day = len(user.get('history', [])) + 1
+    if current_day > 30: current_day = 30
+    
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    web_url = f"https://muminbaevshohjahon-bit.github.io/telegram-bot/?v={random.randint(1, 999999)}"
+    web_url = f"https://muminbaevshohjahon-bit.github.io/telegram-bot/?day={current_day}&v={random.randint(1, 999999)}"
+    
     markup.add(KeyboardButton("Chellenjlar🗓", web_app=WebAppInfo(url=web_url)))
     markup.add(KeyboardButton("Peshqadamlar 🏆"), KeyboardButton("Mening natijam 📊"))
     markup.add(KeyboardButton("Finish 🏁"))
     if int(uid) == ADMIN_ID:
         markup.add(KeyboardButton("/admin 👨‍💻"))
     return markup
+
+# --- ESLATMALAR (REMINDERS) ---
+def reminder_thread():
+    while True:
+        now = datetime.now().strftime("%H:%M")
+        # Ertalabki va kechki eslatmalar
+        if now in ["08:00", "12:00", "18:00", "21:00"]:
+            msg = random.choice(CUSTOM_MOTIVATIONS)
+            for uid in list(user_data.keys()):
+                try:
+                    bot.send_message(uid, f"🔔 <b>Eslatma:</b>\n\n{msg}", parse_mode='HTML')
+                except:
+                    continue
+            time.sleep(61)
+        time.sleep(30)
+
+threading.Thread(target=reminder_thread, daemon=True).start()
 
 # --- START VA REGISTRATSIYA ---
 @bot.message_handler(commands=['start'])
@@ -151,24 +172,13 @@ def get_nick(message):
 @bot.message_handler(func=lambda m: m.text == "Peshqadamlar 🏆")
 def leaderboard(message):
     if not check_sub(message.chat.id): return
-    
-    sorted_users = sorted(
-        user_data.items(), 
-        key=lambda x: x[1].get('total_score', 0), 
-        reverse=True
-    )
-    
+    sorted_users = sorted(user_data.items(), key=lambda x: x[1].get('total_score', 0), reverse=True)
     leader_text = "🏆 <b>Eng kuchli intizom egalari:</b>\n\n"
-    
     for i, (uid, data) in enumerate(sorted_users[:10], 1):
         name = data.get('info', {}).get('name', "Foydalanuvchi")
         score = data.get('total_score', 0)
         medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else f"{i}."
         leader_text += f"{medal} <b>{name}</b> — {score} ball\n"
-    
-    if not sorted_users:
-        leader_text += "Hozircha natijalar yo'q."
-        
     bot.send_message(message.chat.id, leader_text, parse_mode='HTML')
 
 # --- NATIJALAR VA FINISH ---
@@ -197,17 +207,14 @@ def finish_day(message):
     uid = str(message.chat.id)
     user = get_user(uid)
     today = datetime.now().strftime('%d/%m')
-    
     if any(today in entry for entry in user.get('history', [])):
         bot.send_message(uid, "Bugun yakunlab bo'lingan! ✨")
         return
-    
     percent = int((len(user.get('completed_today', [])) / TOTAL_TASKS) * 100)
     user.setdefault('history', []).append(f"{today}: {percent}%")
     user['completed_today'] = []
     save_data()
-    
-    bot.send_message(uid, f"🏁 Kunlik natija: {percent}% saqlandi!")
+    bot.send_message(uid, f"🏁 Kunlik natija: {percent}% saqlandi!", reply_markup=main_menu(uid))
 
 # --- ADMIN PANEL ---
 @bot.message_handler(commands=['admin'])
