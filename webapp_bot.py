@@ -98,20 +98,37 @@ def check_subscription(user_id):
     except:
         return False
 
+
+# 🔥 SHU YERDA ALOHIDA BO‘LISHI SHART
+def subscription_required(func):
+    def wrapper(message):
+        uid = message.chat.id
+        if not check_subscription(uid):
+            bot.send_message(
+                uid,
+                f"❌ Avval kanalga obuna bo‘ling: {CHANNEL_ID}"
+            )
+            return
+        return func(message)
+    return wrapper
+
 # --- START VA REGISTRATSIYA ---
 @bot.message_handler(commands=['start'])
 def start(message):
     uid = message.chat.id
     user = get_user(uid)
     
-    # Kanalga obuna bo'lish tekshiruvi
     if not check_subscription(uid):
-        bot.send_message(uid, f"⚠️ Botdan foydalanish uchun kanalimizga obuna bo‘ling: {CHANNEL_ID}\n\nObuna bo‘lganingizdan so‘ng /start qayta bosing.")
+        # Obuna bo'lmagan foydalanuvchi
+        bot.send_message(
+            uid,
+            f"⚠️ Iltimos, kanalga obuna bo‘ling: {CHANNEL_ID}\n\nObuna bo‘lganingizdan so‘ng bot avtomatik xabar yuboradi."
+        )
         user['step'] = 'waiting_subscription'
         save_data()
         return
 
-    # Agar foydalanuvchi avvaldan ro'yxatdan o'tgan bo'lsa
+    # Agar foydalanuvchi allaqachon ro'yxatdan o'tgan bo'lsa
     if user['step'] == 'main':
         bot.send_message(uid, "Siz allaqachon ro'yxatdan o'tgansiz!", reply_markup=main_menu())
         return
@@ -120,7 +137,7 @@ def start(message):
     user['step'] = 'get_name'
     user['info'] = {}  # info bo'shatamiz, yangi start
     save_data()
-
+    
     welcome_text = (
         "<b><i>Assalomu aleykum, hush kelibsiz!</i></b>\n"
         "<b><i>Men MBE useful tomonidan yaratilgan botman!</i></b>\n\n"
@@ -128,7 +145,6 @@ def start(message):
         "Keling tanishib olaylik... Ismingizni kiriting:"
     )
     bot.send_message(uid, welcome_text, parse_mode='HTML')
-
 @bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_name')
 def get_name(message):
     uid = str(message.chat.id)
@@ -203,6 +219,7 @@ def send_db(message):
 
 # --- LEADERBOARD ---
 @bot.message_handler(func=lambda m: m.text == "Peshqadamlar 🏆")
+@subscription_required
 def leaderboard(message):
     users = []
     for uid, data in user_data.items():
@@ -221,6 +238,7 @@ def leaderboard(message):
     bot.send_message(message.chat.id, text, parse_mode='HTML')
 
 @bot.message_handler(func=lambda m: m.text == "Mening natijam 📊")
+@subscription_required
 def my_result(message):
     uid = str(message.chat.id)
     if uid not in user_data:
@@ -247,6 +265,7 @@ def my_result(message):
 
 # --- FINISH ---
 @bot.message_handler(func=lambda m: m.text == "Finish 🏁")
+@subscription_required
 def finish_day(message):
     user = get_user(message.chat.id)
     today = datetime.now().strftime('%d/%m')
@@ -298,6 +317,7 @@ threading.Thread(target=check_subscription_periodically, daemon=True).start()
 
 # --- WEBAPP ---
 @bot.message_handler(content_types=['web_app_data'])
+@subscription_required
 def web_app_receive(message):
     data = json.loads(message.web_app_data.data)
     user = get_user(message.chat.id)
@@ -330,7 +350,11 @@ def check_subscription_periodically():
                 if check_subscription(uid):
                     user['step'] = 'get_name'
                     save_data()
+                    
+                    # Avtomatik xabar
                     bot.send_message(uid, "🎉 Rahmat! Endi botdan foydalana olasiz!")
+
+                    # Qoidalar
                     rules_text = (
                         "📜 <b>Qoidalar:</b>\n\n"
                         "Botga start bosib registratsiyadan so‘ng chellenjni boshlash mumkin.\n\n"
@@ -349,6 +373,9 @@ def check_subscription_periodically():
                         "Biz sizni toqatingizdan ortig‘iga majbur qilmaymiz 😊"
                     )
                     bot.send_message(uid, rules_text, parse_mode='HTML')
+                else:
+                    # Agar foydalanuvchi hali obuna bo'lmagan bo'lsa, eslatib qo'yish
+                    bot.send_message(uid, f"⚠️ Iltimos, kanalga obuna bo‘ling: {CHANNEL_ID}")
         time.sleep(10)  # har 10 soniyada tekshiradi
         
 if __name__ == "__main__":
