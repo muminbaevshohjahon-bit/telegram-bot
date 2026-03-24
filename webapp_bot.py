@@ -119,9 +119,10 @@ def start(message):
     if user['step'] == 'main':
         bot.send_message(uid, "Siz allaqachon ro'yxatdan o'tgansiz!", reply_markup=main_menu())
         return
-    user['step'] = 'get_name'
+   user['step'] ='get_name'
     save_data()
-      welcome_text = (
+    
+    welcome_text = (
         "<b><i>Assalomu aleykum, hush kelibsiz!</i></b>\n"
         "<b><i>Men MBE useful tomonidan yaratilgan botman!</i></b>\n\n"
         "<b><i>Maqsadimiz 30 kunlik chellenj davomida intizomni shakllantirish.</i></b>\n\n"
