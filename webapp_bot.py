@@ -12,7 +12,6 @@ os.environ['TZ'] = 'Asia/Tashkent'
 if hasattr(time, 'tzset'):
     time.tzset()
 
-TOKEN =Endi Web.app qismini ishlaymiz! import telebot
 import os
 import random
 import json
@@ -216,8 +215,6 @@ def leaderboard(message):
         text += f"{i}. {u['nick']} — {u['score']} ball\n"
     bot.send_message(message.chat.id, text, parse_mode='HTML')
 
-# --- MENING NATIJAM ---
-# --- MENING NATIJAM ---
 @bot.message_handler(func=lambda m: m.text == "Mening natijam 📊")
 def my_result(message):
     uid = str(message.chat.id)
@@ -230,7 +227,6 @@ def my_result(message):
     name = data.get('info', {}).get('name', "Noma'lum")
     score = data.get('total_score', 0)
     
-    # MANA SIZ YOZGAN KOD SHU YERDA:
     response_text = "📊 **Sizning natijangiz:**\n"
     response_text += f"""
 👤 {name}
