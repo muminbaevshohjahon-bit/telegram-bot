@@ -343,10 +343,12 @@ def web_app_receive(message):
 # --- SUBSCRIPTION CHECKER ---
 def check_subscription_periodically():
     while True:
-        for uid, user in user_data.items():
+        # user_data lug'atini xavfsiz aylanish uchun nusxa olamiz
+        for uid in list(user_data.keys()):
+            user = user_data[uid]
             if user.get('step') == 'waiting_subscription':
                 if check_subscription(uid):
-                    user['step'] = 'get_name' # Bosqichni ism so'rashga o'zgartiramiz
+                    user['step'] = 'get_name' # Ism so'rashga o'tamiz
                     save_data()
                     
                     # 1. Tabrik xabari
@@ -363,6 +365,21 @@ def check_subscription_periodically():
                         "Biz sizni toqatingizdan ortig‘iga majbur qilmaymiz 😊"
                     )
                     bot.send_message(uid, rules_text, parse_mode='HTML')
+
+                    # 3. RO'YXATDAN O'TISH XABARI (Welcome text)
+                    welcome_text = (
+                        "<b><i>Assalomu aleykum, hush kelibsiz!</i></b>\n"
+                        "<b><i>Men MBE useful tomonidan yaratilgan botman!</i></b>\n\n"
+                        "<b><i>Maqsadimiz 30 kunlik chellenj davomida intizomni shakllantirish.</i></b>\n\n"
+                        "Keling tanishib olaylik... Ismingizni kiriting:"
+                    )
+                    bot.send_message(uid, welcome_text, parse_mode='HTML')
+                else:
+                    # Obuna bo'lmagan bo'lsa, hech narsa qilmaymiz (kutamiz)
+                    pass
+        
+        # Har 10 soniyada bir marta tekshiradi
+        time.sleep(10)
 
                     # 3. RO'YXATDAN O'TISH XABARI (Welcome text)
                     welcome_text = (
