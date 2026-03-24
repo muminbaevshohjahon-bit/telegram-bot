@@ -366,39 +366,20 @@ def check_subscription_periodically():
                     )
                     bot.send_message(uid, rules_text, parse_mode='HTML')
 
-                    # 3. RO'YXATDAN O'TISH XABARI (Welcome text)
+                    # 3. Ro'yxatdan o'tish xabari
                     welcome_text = (
-                        "<b><i>Assalomu aleykum, hush kelibsiz!</i></b>\n"
+                        "<b><i>Assalomu aleykum hush kelibsiz!</i></b>\n"
                         "<b><i>Men MBE useful tomonidan yaratilgan botman!</i></b>\n\n"
                         "<b><i>Maqsadimiz 30 kunlik chellenj davomida intizomni shakllantirish.</i></b>\n\n"
                         "Keling tanishib olaylik... Ismingizni kiriting:"
                     )
                     bot.send_message(uid, welcome_text, parse_mode='HTML')
-                else:
-                    # Obuna bo'lmagan bo'lsa, hech narsa qilmaymiz (kutamiz)
-                    pass
-        
-        # Har 10 soniyada bir marta tekshiradi
+
         time.sleep(10)
 
-                    # 3. RO'YXATDAN O'TISH XABARI (Welcome text)
-                    welcome_text = (
-                        "<b><i>Assalomu aleykum, hush kelibsiz!</i></b>\n"
-                        "<b><i>Men MBE useful tomonidan yaratilgan botman!</i></b>\n\n"
-                        "<b><i>Maqsadimiz 30 kunlik chellenj davomida intizomni shakllantirish.</i></b>\n\n"
-                        "Keling tanishib olaylik... Ismingizni kiriting:"
-                    )
-                    bot.send_message(uid, welcome_text, parse_mode='HTML')
-                    
-        time.sleep(10)
-         else:
-            # Agar foydalanuvchi hali obuna bo'lmagan bo'lsa, eslatib qo'yish
-            bot.send_message(uid, f"⚠️ Iltimos, kanalga obuna bo‘ling: {CHANNEL_ID}")
-        time.sleep(10)  # har 10 soniyada tekshiradi
-        
-# Faylning eng oxiri
+# --- FAYLNING ENG OXIRI ---
 if __name__ == "__main__":
     # auto_scheduler ishga tushganda, u o'z ichida 
-    # check_subscription_periodically'ni ham avtomatik yoqadi (182-qator)
+    # check_subscription_periodically'ni ham avtomatik yoqadi
     threading.Thread(target=auto_scheduler, daemon=True).start()
     bot.infinity_polling()
