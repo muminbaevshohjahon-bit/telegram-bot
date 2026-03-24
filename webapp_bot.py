@@ -123,23 +123,53 @@ def start(message):
     user['step'] = 'get_name'
     save_data()
     
-    welcome_text = (
+      welcome_text = (
         "<b><i>Assalomu aleykum, hush kelibsiz!</i></b>\n"
         "<b><i>Men MBE useful tomonidan yaratilgan botman!</i></b>\n\n"
         "<b><i>Maqsadimiz 30 kunlik chellenj davomida intizomni shakllantirish.</i></b>\n\n"
         "Keling tanishib olaylik... Ismingizni kiriting:"
     )
     bot.send_message(uid, welcome_text, parse_mode='HTML')
-
-
 @bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_name')
 def get_name(message):
     uid = str(message.chat.id)
     user_data[uid]['info']['name'] = message.text
-    user_data[uid]['info']['nickname'] = message.from_user.username or message.text
+    user_data[uid]['step'] = 'get_year'
+    save_data()
+    bot.send_message(message.chat.id, "Tug‘ilgan yilingiz (masalan: 2004):")
+
+@bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_year')
+def get_year(message):
+    uid = str(message.chat.id)
+    user_data[uid]['info']['birth_year'] = message.text
+    user_data[uid]['step'] = 'get_month'
+    save_data()
+    bot.send_message(message.chat.id, "Tug‘ilgan oyingiz (masalan: Avgust):")
+
+@bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_month')
+def get_month(message):
+    uid = str(message.chat.id)
+    user_data[uid]['info']['birth_month'] = message.text
+    user_data[uid]['step'] = 'get_day'
+    save_data()
+    bot.send_message(message.chat.id, "Tug‘ilgan kuningiz (masalan: 25):")
+
+@bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_day')
+def get_day(message):
+    uid = str(message.chat.id)
+    user_data[uid]['info']['birth_day'] = message.text
+    user_data[uid]['step'] = 'get_nick'
+    save_data()
+    bot.send_message(message.chat.id, "Tahallus tanlang:")
+
+@bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_nick')
+def get_nick(message):
+    uid = str(message.chat.id)
+    user_data[uid]['info']['nickname'] = message.text
     user_data[uid]['step'] = 'main'
     save_data()
-    bot.send_message(message.chat.id, "Tabriklayman, ro'yxatdan o'tdingiz!🔥", reply_markup=main_menu())
+    bot.send_message(message.chat.id, "Tabrikleyshn, ro'yxatdan o'tdingiz!🔥", reply_markup=main_menu())
+
 
 # --- ASOSIY FUNKSIYALAR ---
 @bot.message_handler(func=lambda m: m.text == "Peshqadamlar 🏆")
