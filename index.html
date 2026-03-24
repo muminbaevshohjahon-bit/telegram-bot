@@ -1,85 +1,170 @@
 <!DOCTYPE html>
 <html lang="uz">
 <head>
-    <meta charset="UTF-8">
-    <title>MBE Challenge Tracker</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        :root { --bg: #0f172a; --card: #1e293b; --accent: #22c55e; --blue: #3b82f6; --text: #ffffff; }
-        body { margin: 0; font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); }
-        .container { padding: 16px; }
-        .challenge-card { display: flex; justify-content: space-between; padding: 16px; margin: 10px 0; border-radius: 12px; background: var(--card); cursor: pointer; border: 1px solid #334155; transition: 0.2s; }
-        .challenge-card:active { transform: scale(0.98); background: #334155; }
-        .calendar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 15px; }
-        .day-box { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 10px; background: #e2e8f0; color: black; font-weight: bold; cursor: pointer; opacity: 0.5; }
-        .day-box.active { border: 2px solid var(--accent); opacity: 1; transform: scale(1.05); }
-        .day-box.done { background: var(--accent); color: white; opacity: 1; border: none; }
-        .back-btn { display: inline-block; padding: 8px 16px; background: var(--card); border-radius: 8px; cursor: pointer; margin-bottom: 15px; font-weight: bold; }
-        .progress { margin: 15px 0; height: 10px; background: #1e293b; border-radius: 6px; overflow: hidden; }
-        .progress-bar { height: 100%; background: var(--accent); width: 0%; transition: 0.5s; }
-        #calendarView { display: none; }
-        h2 { color: var(--accent); margin-top: 0; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chellenj Tracker</title>
+
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #0f172a;
+        color: white;
+        margin: 0;
+        padding: 15px;
+    }
+
+    h2 {
+        text-align: center;
+    }
+
+    .card {
+        background: #1e293b;
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 12px;
+        display: flex;
+        justify-content: space-between;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+
+    .card:hover {
+        background: #334155;
+    }
+
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 6px;
+        margin-top: 15px;
+    }
+
+    .day {
+        padding: 10px;
+        text-align: center;
+        border-radius: 8px;
+        background: #1e293b;
+        cursor: pointer;
+    }
+
+    .done {
+        background: #22c55e;
+    }
+
+    .active {
+        border: 2px solid yellow;
+    }
+
+    button {
+        margin-top: 15px;
+        width: 100%;
+        padding: 12px;
+        border: none;
+        border-radius: 10px;
+        background: #3b82f6;
+        color: white;
+        font-size: 16px;
+    }
+</style>
 </head>
+
 <body>
 
-<div class="container">
-    <h2 id="userName">Salom!</h2>
+<h2>🔥 Chellenjlar</h2>
 
-    <div id="mainView">
-        <div id="challengeList"></div>
-    </div>
+<div id="main"></div>
 
-    <div id="calendarView">
-        <div class="back-btn" onclick="showMain()">⬅ Orqaga</div>
-        <h2 id="calTitle"></h2>
-        <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
-        <p style="font-size: 12px; opacity: 0.7;">Faqat bugungi (atrofi yashil) kunni belgilash mumkin.</p>
-        <div class="calendar" id="calendarGrid"></div>
-    </div>
+<div id="calendar" style="display:none;">
+    <h3 id="title"></h3>
+    <div class="grid" id="grid"></div>
+    <button onclick="back()">⬅️ Orqaga</button>
 </div>
 
 <script>
-    const tg = window.Telegram.WebApp;
-    tg.expand();
+const tg = window.Telegram.WebApp;
+tg.expand();
 
-    const tasks = [
-        { id: "detox", name: "Tongda telefonsiz detox 📵" },
-        { id: "reading", name: "Kitob mutolasi 📚" },
-        { id: "sugar", name: "Sugar detox 🍬" },
-        { id: "drink", name: "Gazsiz ichimliklar 🥤" },
-        { id: "money", name: "5000 so'm sarmoya 💰" },
-        { id: "sport", name: "Jismoniy mashq 💪" },
-        { id: "sleep", name: "Soat 23:00 gacha uxlash 🌛" },
-        { id: "meditate", name: "1 daqiqa sukunat 🧘‍♂️" }
-    ];
+const tasks = [
+    "Tongda telefonsiz detox 1 soat 📱 ",
+    "Shakarsiz hayot🧘",
+    "Kitob mutolasi 15 daqiqa 📕",
+    "Gazsiz ichimliklar 🍵",
+    "23:00 gacha uyqu 🌙",
+    "2 daqiqa sukunat 🧘",
+    "DEEP WORK 🧘",
+    "Kuniga 5000 so'm sarmoya 💸 "
+];
 
-    // URL'dan joriy kunni olish (Bot yuborgan day parametri)
-    const urlParams = new URLSearchParams(window.location.search);
-    let userDay = parseInt(urlParams.get('day')) || 1;
+let userDay = parseInt(localStorage.getItem("day")) || 1;
 
-    function showMain() {
-        document.getElementById('mainView').style.display = 'block';
-        document.getElementById('calendarView').style.display = 'none';
-    }
+function renderMain(){
+    const main = document.getElementById("main");
+    main.innerHTML = "";
 
-    function init() {
-        const list = document.getElementById('challengeList');
-        list.innerHTML = '';
-        tasks.forEach(task => {
-            const card = document.createElement('div');
-            card.className = 'challenge-card';
-            card.innerHTML = `<span>${task.name}</span><span>➡️</span>`;
-            card.onclick = () => openCalendar(task);
-            list.appendChild(card);
-        });
+    tasks.forEach(task => {
+        const div = document.createElement("div");
+        div.className = "card";
+        div.innerHTML = `<span>${task}</span><span>➡️</span>`;
+        div.onclick = () => openCalendar(task);
+        main.appendChild(div);
+    });
+}
 
-        if (tg.initDataUnsafe?.user) {
-            document.getElementById('userName').innerText = "Salom, " + tg.initDataUnsafe.user.first_name + "!";
+function openCalendar(task){
+    document.getElementById("main").style.display = "none";
+    document.getElementById("calendar").style.display = "block";
+    document.getElementById("title").innerText = task;
+
+    const grid = document.getElementById("grid");
+    grid.innerHTML = "";
+
+    for(let i=1;i<=30;i++){
+        const day = document.createElement("div");
+        day.className = "day";
+        day.innerText = i;
+
+        let key = `${task}_${i}`;
+
+        if(localStorage.getItem(key) === "done"){
+            day.classList.add("done");
         }
-    }
 
-    function openCalendar(task) {
-        document.getElementById('mainView').style.display = 'none';
-        document.getElementById
+        if(i === userDay){
+            day.classList.add("active");
+        }
+
+        day.onclick = () => {
+            if(i === userDay){
+                const isDone = day.classList.toggle("done");
+                localStorage.setItem(key, isDone ? "done" : "no");
+
+                if(isDone){
+                    tg.HapticFeedback.notificationOccurred("success");
+
+                    tg.sendData(JSON.stringify({
+                        action: "done",
+                        task: task
+                    }));
+                }
+            } else {
+                tg.showAlert("Faqat bugungi kunni belgilash mumkin!");
+            }
+        };
+
+        grid.appendChild(day);
+    }
+}
+
+function back(){
+    document.getElementById("main").style.display = "block";
+    document.getElementById("calendar").style.display = "none";
+}
+
+renderMain();
+</script>
+
+</body>
+</html>
