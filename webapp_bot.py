@@ -7,7 +7,7 @@ import time
 from datetime import datetime
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
 
-# Vaqt zonasi
+# Vaqt zonasi - O'zbekiston vaqti bilan ishlash uchun
 os.environ['TZ'] = 'Asia/Tashkent'
 if hasattr(time, 'tzset'):
     time.tzset()
@@ -15,12 +15,12 @@ if hasattr(time, 'tzset'):
 TOKEN = os.getenv("TOKEN")
 bot = telebot.TeleBot(TOKEN)
 
-# --- SOZLAMALAR ---
+# --- KONFIGURATSIYA ---
 ADMIN_ID = 6338204692 
-CHANNELS = ["@mbe_useful"] # O'z kanalingizni kiriting
+CHANNELS = ["@mbe_useful"] # Majburiy obuna kanali
 TOTAL_TASKS = 8 # 7 ta odatiy + 1 ta uyqu vazifasi
 
-# --- MA'LUMOTLAR ---
+# --- MA'LUMOTLAR BILAN ISHLASH ---
 def load_data():
     try:
         with open('users_db.json', 'r') as f:
@@ -40,16 +40,16 @@ CUSTOM_MOTIVATIONS = [
     "Eng zo‘r vaqt — hozir. 🚀", "Intizom — bu o'ziga berilgan va'dani bajarishdir. ✨",
     "Har kuni kichik qadam — katta natija.", "Eng katta raqibing — kechagi o‘zing.",
     "Mukammallikni kutma — harakatni boshlash muhim.", "Sen o‘ylagandan ham kuchlisan.",
-    "Hech kim seni qutqarmaydi — o‘zingni o‘zing ko‘tar.💪", "Qiyinchilik — bu yashirin imkoniyat.",
+    "Hech kim seni qutqarmaydi — o‘zingni o‘zing ko‘tar.", "Qiyinchilik — bu yashirin imkoniyat.",
     "Orzular faqat harakat bilan haqiqatga aylanadi.", "Qo‘rqish — o‘sish boshlanishidir.",
     "Sen taslim bo‘lmaguningcha, yutqazmading.", "Bahonalar seni orqaga tortadi.",
     "Harakat — motivatsiyadan muhimroq.", "Vaqt ketmoqda — senchi?",
-    "O‘zgarish og‘riqli, lekin zarur.🔥", "Natija sabrni yaxshi ko‘radi.",
+    "O‘zgarish og‘riqli, lekin zarur.", "Natija sabrni yaxshi ko‘radi.",
     "Bugun qilmaganing — ertaga pushaymon bo‘ladi.", "Kichik boshlashdan uyalmagin.",
-    "Eng katta tavakkal — urinmaslik.", "Qo‘rquv seni to‘xtatmasin.💪",
-    "O‘zingga sodiq bo‘l.🔥", "Taslim bo‘lish — variant emas.💪",
+    "Eng katta tavakkal — urinmaslik.", "Qo‘rquv seni to‘xtatmasin.",
+    "O‘zingga sodiq bo‘l.", "Taslim bo‘lish — variant emas.",
     "O‘zgarish sendan boshlanadi.", "Boshlagin. Hozir. Shu yerda.",
-    "Aqilli inson uchun har kuni yangi kun boshlanadi.","Kuchsizlar faqat taslim bo'ladi.🔥"
+    "Aqilli inson uchun har kuni yangi kun boshlanadi.","Kuchsizlar faqat taslim bo'ladi."
 ]
 
 FINISH_MOTIVATIONS = [
@@ -66,26 +66,17 @@ GIFS = [
    "https://media.giphy.com/media/FACfMgP1N9mlG/giphy.gif",
    "https://media2.giphy.com/media/fUQ4rhUZJYiQsas6WD/giphy.gif",
    "https://media.giphy.com/media/tHIRLHtNwxpjIFqPdV/giphy.gif",
-   "https://media.giphy.com/media/g9582DNuQppxC/giphy.gif"
+   "https://media.giphy.com/media/8ZblO3ZD5NMltPaFS2/giphy.gif"
 ]
 
-# --- FUNKSIYALAR ---
-def check_sub(user_id):
+# --- YORDAMCHI FUNKSIYALAR ---
+def check_sub(uid):
     for channel in CHANNELS:
         try:
-            member = bot.get_chat_member(channel, user_id)
-            if member.status == 'left':
-                return False
-        except:
-            return True 
+            status = bot.get_chat_member(channel, uid).status
+            if status == 'left': return False
+        except: continue
     return True
-
-def sub_markup():
-    markup = InlineKeyboardMarkup()
-    for channel in CHANNELS:
-        markup.add(InlineKeyboardButton("Kanalga a'zo bo'lish 📢", url=f"https://t.me/{channel[1:]}"))
-    markup.add(InlineKeyboardButton("Tekshirish ✅", callback_data="check_subscription"))
-    return markup
 
 def get_user(uid):
     uid = str(uid)
@@ -93,47 +84,45 @@ def get_user(uid):
         user_data[uid] = {'total_score': 0, 'history': [], 'completed_today': [], 'info': {}, 'step': 'start'}
     return user_data[uid]
 
-def main_menu(user_id):
+def main_menu(uid):
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    # WebApp URL keshni tozalash uchun random son bilan
     web_url = f"https://muminbaevshohjahon-bit.github.io/telegram-bot/?v={random.randint(1, 999999)}"
-    markup.add(KeyboardButton("Chellenjlar 🗓", web_app=WebAppInfo(url=web_url)))
+    markup.add(KeyboardButton("Chellenjlar🗓", web_app=WebAppInfo(url=web_url)))
     markup.add(KeyboardButton("Peshqadamlar 🏆"), KeyboardButton("Mening natijam 📊"))
     markup.add(KeyboardButton("Finish 🏁"))
-    if user_id == ADMIN_ID:
+    if int(uid) == ADMIN_ID:
         markup.add(KeyboardButton("/admin 👨‍💻"))
     return markup
 
-# --- HANDLERLAR ---
+# --- START VA REGISTRATSIYA ---
 @bot.message_handler(commands=['start'])
 def start(message):
-    uid = str(message.chat.id)
-    if not check_sub(message.chat.id):
-        bot.send_message(uid, "<b>Botdan foydalanish uchun kanalimizga a'zo bo'ling!</b>", 
-                         parse_mode='HTML', reply_markup=sub_markup())
+    uid = message.chat.id
+    if not check_sub(uid):
+        markup = InlineKeyboardMarkup()
+        markup.add(InlineKeyboardButton("Kanalga a'zo bo'lish 📢", url=f"https://t.me/{CHANNELS[0].replace('@', '')}"))
+        bot.send_message(uid, "<b>Botdan foydalanish uchun kanalimizga a'zo bo'ling!</b>", parse_mode='HTML', reply_markup=markup)
         return
 
-    user_data[uid] = {'total_score': 0, 'history': [], 'completed_today': [], 'info': {}, 'step': 'get_name'}
+    user_data[str(uid)] = {'total_score': 0, 'history': [], 'completed_today': [], 'info': {}, 'step': 'get_name'}
     save_data()
-    welcome_text = "<b>Assalomu aleykum!</b>\nKeling tanishib olaylik. Ismingizni kiriting:"
+    
+    welcome_text = (
+        "<b><i>Assalomu aleykum xush kelibsiz!</i></b>\n"
+        "<b><i>Men MBE useful tomonidan yaratilgan botman!</i></b>\n\n"
+        "<b><i>Maqsadimiz 30 kunlik chellenj davomida intizomni shakllantirish.</i></b>\n\n"
+        "Keling tanishib olaylik... Ismingizni kiriting:"
+    )
     bot.send_message(uid, welcome_text, parse_mode='HTML')
 
-@bot.callback_query_handler(func=lambda call: call.data == "check_subscription")
-def check_callback(call):
-    if check_sub(call.from_user.id):
-        bot.answer_callback_query(call.id, "Rahmat!")
-        bot.delete_message(call.message.chat.id, call.message.message_id)
-        start(call.message)
-    else:
-        bot.answer_callback_query(call.id, "Siz hali a'zo bo'lmadingiz!", show_alert=True)
-
-# --- REGISTRATSIYA ---
 @bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_name')
 def get_name(message):
     uid = str(message.chat.id)
     user_data[uid]['info']['name'] = message.text
     user_data[uid]['step'] = 'get_year'
     save_data()
-    bot.send_message(uid, "Tug‘ilgan yilingiz (masalan: 2004):")
+    bot.send_message(uid, "Tug‘ilgan yilingiz:")
 
 @bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_year')
 def get_year(message):
@@ -149,33 +138,32 @@ def get_nick(message):
     user_data[uid]['info']['nickname'] = message.text
     user_data[uid]['step'] = 'main'
     save_data()
-    bot.send_message(uid, "Ro'yxatdan o'tildi!🔥", reply_markup=main_menu(message.chat.id))
+    bot.send_message(uid, "Tabrikleymiz, ro'yxatdan o'tildi!🔥", reply_markup=main_menu(uid))
 
-# --- NATIJA VA GISTOGRAMMA ---
+# --- NATIJALAR ---
 @bot.message_handler(func=lambda m: m.text == "Mening natijam 📊")
 def my_stats(message):
+    if not check_sub(message.chat.id): return
     user = get_user(message.chat.id)
     history = user.get('history', [])
-    stat_text = "📊 <b>Oxirgi 7 kunlik natijalar:</b>\n\n"
-    
-    if not history:
+    stat_text = "📊 <b>Haftalik natijalar:</b>\n\n"
+    if not history: 
         stat_text += "Hali natija yo'q."
     else:
         for entry in history[-7:]:
             try:
                 day, res = entry.split(": ")
-                val = int(res.replace('%', ''))
-                # Piktogramma gistogrammasi
-                bar = "🟦" * (val // 10) + "⬜️" * (10 - (val // 10))
-                stat_text += f"<code>{day}</code> {bar} <b>{val}%</b>\n"
+                p_val = int(res.replace('%', ''))
+                bar = "🟦" * (p_val // 10) + "⬜️" * (10 - (p_val // 10))
+                stat_text += f"<code>{day}</code> {bar} <b>{p_val}%</b>\n"
             except: continue
-            
-    stat_text += f"\n🔥 Umumiy ball: <code>{user.get('total_score', 0)}</code>"
+    stat_text += f"\n🔥 Umumiy ball: {user.get('total_score', 0)}"
     bot.send_message(message.chat.id, stat_text, parse_mode='HTML')
 
-# --- FINISH ---
+# --- KUNNI YAKUNLASH ---
 @bot.message_handler(func=lambda m: m.text == "Finish 🏁")
 def finish_day(message):
+    if not check_sub(message.chat.id): return
     uid = str(message.chat.id)
     user = get_user(uid)
     today = datetime.now().strftime('%d/%m')
@@ -184,22 +172,18 @@ def finish_day(message):
         bot.send_message(uid, "Bugun yakunlab bo'lingan! ✨")
         return
     
-    completed = len(user.get('completed_today', []))
-    percent = int((completed / TOTAL_TASKS) * 100)
+    percent = int((len(user.get('completed_today', [])) / TOTAL_TASKS) * 100)
     user.setdefault('history', []).append(f"{today}: {percent}%")
     user['completed_today'] = []
     save_data()
     
-    msg = f"🏁 <b>Bugungi natija: {percent}%</b>\n🔥 Umumiy ball: {user['total_score']}"
-    if percent >= 30:
-        try:
-            bot.send_animation(uid, random.choice(GIFS), caption=f"{msg}\n\n{random.choice(FINISH_MOTIVATIONS)}", parse_mode='HTML')
-        except:
-            bot.send_message(uid, msg, parse_mode='HTML')
+    if percent >= 20:
+        motivation = random.choice(FINISH_MOTIVATIONS)
+        bot.send_animation(uid, random.choice(GIFS), caption=f"🏁 Natija: {percent}%\n\n{motivation}", parse_mode='HTML')
     else:
-        bot.send_message(uid, f"{msg}\n\nErtaga kuchliroq bo'lamiz! 💪", parse_mode='HTML')
+        bot.send_message(uid, f"🏁 Natija: {percent}%\n\nBugun biroz sustkashlik bo'ldi. Ertaga kuchliroq bo'lamiz! 💪")
 
-# --- WEBAPP MA'LUMOTI (Har bir vazifa uchun) ---
+# --- WEBAPP MA'LUMOTLARI ---
 @bot.message_handler(content_types=['web_app_data'])
 def web_app_receive(message):
     data = json.loads(message.web_app_data.data)
@@ -210,22 +194,47 @@ def web_app_receive(message):
             user.setdefault('completed_today', []).append(task)
             user['total_score'] = user.get('total_score', 0) + 10
             save_data()
-            
-            # Har bir vazifa uchun foiz hisoblash
-            current_percent = int((len(user['completed_today']) / TOTAL_TASKS) * 100)
-            caption = f"✅ <b>{task}</b> bajarildi!\n💰 +10 ball (Jami: {user['total_score']})\n📈 Bugungi progress: {current_percent}%\n\n{random.choice(CUSTOM_MOTIVATIONS)}"
-            
-            try:
-                bot.send_animation(message.chat.id, random.choice(GIFS), caption=caption, parse_mode='HTML')
-            except:
-                bot.send_message(message.chat.id, caption, parse_mode='HTML')
+            p = int((len(user['completed_today']) / TOTAL_TASKS) * 100)
+            bot.send_message(message.chat.id, f"✅ <b>{task}</b> bajarildi!\n📈 Progress: {p}%\n\n{random.choice(CUSTOM_MOTIVATIONS)}", parse_mode='HTML')
+
+# --- AVTOMATIK ESLATMALAR ---
+def auto_scheduler():
+    while True:
+        now = datetime.now().strftime("%H:%M")
+        
+        # Vaqtlar ro'yxati
+        schedules = {
+            "08:00": "☀️ Xayrli tong! Bugun 8 ta vazifani (uyqu bilan) ham yoramizmi?",
+            "12:00": "🕛 Kun yarmi keldi! Vazifalar qanday ketyapti? Orqada qolib ketmang! 💪",
+            "19:00": "🌆 Kech kirib qoldi. Bugun hamma vazifalarni bajarishga ulguramizmi? Harakatni tezlashtiramiz! 🚀",
+            "23:00": "🌙 Soat 23:00. Uyqu vaqti bo'ldi! Finish tugmasini bosing va dam oling."
+        }
+
+        if now in schedules:
+            for uid in list(user_data.keys()):
+                try: 
+                    bot.send_message(uid, schedules[now])
+                except: pass
+            time.sleep(61) # Bir xil xabar qayta ketmasligi uchun
+
+        time.sleep(30)
+
+threading.Thread(target=auto_scheduler, daemon=True).start()
 
 # --- ADMIN PANEL ---
 @bot.message_handler(commands=['admin'])
-@bot.message_handler(func=lambda m: m.text == "/admin 👨‍💻")
 def admin_panel(message):
     if message.chat.id == ADMIN_ID:
-        bot.send_message(message.chat.id, f"👥 Jami foydalanuvchilar: {len(user_data)}\n\n/users\n/db_download")
+        bot.send_message(message.chat.id, f"👥 Jami foydalanuvchilar: {len(user_data)}\n/db_download - Bazani yuklash")
+
+@bot.message_handler(commands=['db_download'])
+def db_download(message):
+    if message.chat.id == ADMIN_ID:
+        try:
+            with open('users_db.json', 'rb') as f:
+                bot.send_document(message.chat.id, f)
+        except:
+            bot.send_message(message.chat.id, "Baza fayli topilmadi.")
 
 if __name__ == "__main__":
     bot.infinity_polling()
