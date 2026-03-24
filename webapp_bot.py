@@ -52,7 +52,7 @@ CUSTOM_MOTIVATIONS = [
     "Bugun qilmaganing — ertaga pushaymon bo‘ladi.", "Kichik boshlashdan uyalmagin.",
     "Eng katta tavakkal — urinmaslik.", "Qo‘rquv seni to‘xtatmasin.",
     "O‘zingga sodiq bo‘l.", "Taslim bo‘lish — variant emas.",
-    "O‘zgarish sendan boshlanadi.", "Boshlagin. Hozir. Shu yerda.",
+    "O‘zgarish sendan boshlanadi.", "Boshlagin. Hozir. Shu yerda.", "Barakallo zo'r ketayabsan."
 ]
 
 FINISH_MOTIVATIONS = [
@@ -69,7 +69,11 @@ GIFS = [
     "https://media2.giphy.com/media/fUQ4rhUZJYiQsas6WD/giphy.gif",
     "https://media.giphy.com/media/tHIRLHtNwxpjIFqPdV/giphy.gif",
     "https://media.giphy.com/media/8ZblO3ZD5NMltPaFS2/giphy.gif",
-    "https://media.giphy.com/media/g9582DNuQppxC/giphy.gif"
+    "https://media.giphy.com/media/g9582DNuQppxC/giphy.gif",
+    "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNGU3NGt0eTJuNHd0OXM5eXNwbWVhaDI4ODBja3pwZnhnNzZ6c3ZnYiZlcD12MV9naWZzX3RyZW5kaW5nJmN0PWc/GpyS1lJXJYupG/giphy.gif",
+    "https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3NjJ6N2Zlamg2bmRzZzduYWptcnNuc2hyNmUybG1sb21oM3gxZnp0aSZlcD12MV9naWZzX3RyZW5kaW5nJmN0PWc/h0MTqLyvgG0Ss/giphy.gif",
+    "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZjI3Y3J0M2lva2FzYjJ0d3F2MWFtNnQ5eWFpM2I3aHM4bGNicjE4ZSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/FRzg3omGn8C5ZYeafu/giphy.gif."
+
 ]
 
 
@@ -175,7 +179,7 @@ def get_day(message):
     user_data[uid]['info']['birth_day'] = message.text
     user_data[uid]['step'] = 'get_nick'
     save_data()
-    bot.send_message(message.chat.id, "Nickname kiriting:")
+    bot.send_message(message.chat.id, "Tahallus tanlang:")
 
 @bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_nick')
 def get_nick(message):
