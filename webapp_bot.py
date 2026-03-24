@@ -17,7 +17,7 @@ bot = telebot.TeleBot(TOKEN)
 
 # --- ADMIN & CHANNEL ---
 ADMIN_ID = 6338204692
-CHANNEL_ID = "@yourchannelusername"  # Kanal username yoki ID
+CHANNEL_ID = "@Maybe_its_useful"  # Kanal username yoki ID
 
 # --- MA'LUMOTLAR ---
 def load_data():
