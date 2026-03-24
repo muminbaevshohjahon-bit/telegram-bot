@@ -72,7 +72,6 @@ GIFS = [
     "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNGU3NGt0eTJuNHd0OXM5eXNwbWVhaDI4ODBja3pwZnhnNzZ6c3ZnYiZlcD12MV9naWZzX3RyZW5kaW5nJmN0PWc/GpyS1lJXJYupG/giphy.gif",
     "https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3NjJ6N2Zlamg2bmRzZzduYWptcnNuc2hyNmUybG1sb21oM3gxZnp0aSZlcD12MV9naWZzX3RyZW5kaW5nJmN0PWc/h0MTqLyvgG0Ss/giphy.gif",
     "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZjI3Y3J0M2lva2FzYjJ0d3F2MWFtNnQ5eWFpM2I3aHM4bGNicjE4ZSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/FRzg3omGn8C5ZYeafu/giphy.gif."
-
 ]
 
 # --- HELPER FUNCTIONS ---
@@ -119,7 +118,9 @@ def start(message):
     if user['step'] == 'main':
         bot.send_message(uid, "Siz allaqachon ro'yxatdan o'tgansiz!", reply_markup=main_menu())
         return
-   user['step'] ='get_name'
+    
+    # MUAMMO SHU YERDA EDI: 
+    user['step'] = 'get_name'
     save_data()
     
     welcome_text = (
