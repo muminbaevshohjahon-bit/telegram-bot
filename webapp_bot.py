@@ -313,8 +313,6 @@ def auto_scheduler():
             time.sleep(61)
         time.sleep(30)
 
-threading.Thread(target=check_subscription_periodically, daemon=True).start()
-
 # --- WEBAPP ---
 @bot.message_handler(content_types=['web_app_data'])
 @subscription_required
@@ -378,5 +376,9 @@ def check_subscription_periodically():
                     bot.send_message(uid, f"⚠️ Iltimos, kanalga obuna bo‘ling: {CHANNEL_ID}")
         time.sleep(10)  # har 10 soniyada tekshiradi
         
+# Faylning eng oxiri
 if __name__ == "__main__":
+    # auto_scheduler ishga tushganda, u o'z ichida 
+    # check_subscription_periodically'ni ham avtomatik yoqadi (182-qator)
+    threading.Thread(target=auto_scheduler, daemon=True).start()
     bot.infinity_polling()
