@@ -8,12 +8,12 @@
     <style>
         :root { --bg: #1c1c1e; --card: #2c2c2e; --accent: #34c759; --text: #ffffff; }
         body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 15px; margin: 0; }
-        .challenge-card { background: var(--card); padding: 18px; border-radius: 15px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #3a3a3c; }
+        .challenge-card { background: var(--card); padding: 18px; border-radius: 15px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #3a3a3c; cursor: pointer; }
         .calendar-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 15px; }
-        .day-box { aspect-ratio: 1; background: var(--card); border-radius: 10px; display: flex; align-items: center; justify-content: center; border: 1px solid #3a3a3c; opacity: 0.4; }
-        .day-box.active { border-color: var(--accent); opacity: 1; font-weight: bold; }
-        .day-box.done { background: var(--accent); color: black; opacity: 1; border: none; }
-        .back-btn { background: var(--card); color: white; border: none; padding: 12px; border-radius: 10px; width: 100%; margin-bottom: 15px; font-weight: bold; }
+        .day-box { aspect-ratio: 1; background: var(--card); border-radius: 10px; display: flex; align-items: center; justify-content: center; border: 1px solid #3a3a3c; opacity: 0.4; transition: 0.3s; }
+        .day-box.active { border-color: var(--accent); opacity: 1; font-weight: bold; border-width: 2px; }
+        .day-box.done { background: var(--accent); color: black; opacity: 1; border: none; font-weight: bold; }
+        .back-btn { background: var(--card); color: white; border: none; padding: 12px; border-radius: 10px; width: 100%; margin-bottom: 15px; font-weight: bold; cursor: pointer; }
         #calendarView { display: none; }
         h2 { color: var(--accent); }
     </style>
@@ -38,25 +38,20 @@
 
         const tasks = ["Tongda telefonsiz detox 📵", "Kitob mutolasi 📚", "Sugar detox 🍬", "Gazsiz ichimliklar 🥤", "5000 so'm sarmoya 💰", "Jismoniy mashq 💪", "Soat 23:00 gacha uxlash 🌛", "1 daqiqa sukunat 🧘‍♂️"];
         
-        // --- YANGILANGAN QISM ---
-        // URL'dan 'day' parametrini olish (masalan: ?day=2)
         const urlParams = new URLSearchParams(window.location.search);
         const dayFromUrl = parseInt(urlParams.get('day'));
-
-        // Agar URL'da kun bo'lsa shuni oladi, bo'lmasa localStorage yoki 1-kunni oladi
         let userDay = dayFromUrl || parseInt(localStorage.getItem('current_discipline_day')) || 1;
-        
-        // Har doim joriy kunni saqlab borish
         localStorage.setItem('current_discipline_day', userDay);
-        // -------------------------
 
         function showMain() {
             document.getElementById('mainView').style.display = 'block';
             document.getElementById('calendarView').style.display = 'none';
         }
 
+        // --- XATO TUZATILDI: Funksiya oxirida chaqiriladi ---
         function init() {
             const list = document.getElementById('challengeList');
+            list.innerHTML = ''; // Tozalash
             tasks.forEach(t => {
                 const card = document.createElement('div');
                 card.className = 'challenge-card';
@@ -64,7 +59,7 @@
                 card.onclick = () => openCalendar(t);
                 list.appendChild(card);
             });
-            if (tg.initDataUnsafe.user) {
+            if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
                 document.getElementById('userName').innerText = "Salom, " + tg.initDataUnsafe.user.first_name + "!";
             }
         }
@@ -73,13 +68,43 @@
             document.getElementById('mainView').style.display = 'none';
             document.getElementById('calendarView').style.display = 'block';
             document.getElementById('calTitle').innerText = name;
+            
             const grid = document.getElementById('calendarGrid');
             grid.innerHTML = '';
 
             for (let i = 1; i <= 30; i++) {
                 const day = document.createElement('div');
                 day.className = 'day-box';
-                if (i === userDay) day.classList.add('active');
                 day.innerText = i;
                 
-                const key = `t_${name}_d_${i}`;
+                const key = `t_${name.replace(/\s/g, '')}_d_${i}`;
+                
+                // Oldindan bajarilgan bo'lsa rangini saqlash
+                if (localStorage.getItem(key) === 'done') {
+                    day.classList.add('done');
+                }
+                
+                if (i === userDay) {
+                    day.classList.add('active');
+                }
+
+                // --- XATO TUZATILDI: Element gridga qo'shildi ---
+                grid.appendChild(day);
+
+                day.onclick = () => {
+                    if (i === userDay) {
+                        const isDone = day.classList.toggle('done');
+                        localStorage.setItem(key, isDone ? 'done' : 'not_done');
+                        
+                        // Telegram botga ma'lumot yuborish (ixtiyoriy)
+                        if (isDone) {
+                            tg.HapticFeedback.notificationOccurred('success');
+                        }
+                    } else {
+                        tg.showAlert("Faqat bugungi kunni belgilash mumkin!");
+                    }
+                };
+            }
+        }
+
+        // --- ASOSIY TUZATISH: Sahifa yuklanganda funksiyani ishga
