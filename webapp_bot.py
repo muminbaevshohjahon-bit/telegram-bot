@@ -151,27 +151,16 @@ def start(message):
     bot.send_message(uid, welcome_text, parse_mode='HTML')
 @bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_name')
 def get_name(message):
+ @bot.message_handler(func=lambda m: m.text == "Mening natijam 📊")
+@subscription_required
+def my_result(message):
     uid = str(message.chat.id)
-    user_data[uid]['info']['name'] = message.text
-    user_data[uid]['step'] = 'get_year'
-    save_data()
-    bot.send_message(message.chat.id, "Tug‘ilgan yilingiz (masalan: 2004):")
+    if uid not in user_data:
+        bot.send_message(uid, "Siz hali ro'yxatdan o'tmagansiz. /start bosing.")
+        return
 
-@bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_year')
-def get_year(message):
-    uid = str(message.chat.id)
-    user_data[uid]['info']['birth_year'] = message.text
-    user_data[uid]['step'] = 'get_month'
-    save_data()
-    bot.send_message(message.chat.id, "Tug‘ilgan oyingiz (masalan: Avgust):")
-
-@bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_month')
-def get_month(message):
-    uid = str(message.chat.id)
-    user_data[uid]['info']['birth_month'] = message.text
-    user_data[uid]['step'] = 'get_day'
-    save_data()
-    bot.send_message(message.chat.id, "Tug‘ilgan kuningiz (masalan: 25):")
+    data = user_data[uid]
+    info = data.get('info', {})
 
 @bot.message_handler(func=lambda m: get_user(m.chat.id).get('step') == 'get_day')
 def get_day(message):
