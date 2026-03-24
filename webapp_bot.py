@@ -374,9 +374,9 @@ def check_subscription_periodically():
                     bot.send_message(uid, welcome_text, parse_mode='HTML')
                     
         time.sleep(10)
-                else:
-                    # Agar foydalanuvchi hali obuna bo'lmagan bo'lsa, eslatib qo'yish
-                    bot.send_message(uid, f"⚠️ Iltimos, kanalga obuna bo‘ling: {CHANNEL_ID}")
+         else:
+            # Agar foydalanuvchi hali obuna bo'lmagan bo'lsa, eslatib qo'yish
+            bot.send_message(uid, f"⚠️ Iltimos, kanalga obuna bo‘ling: {CHANNEL_ID}")
         time.sleep(10)  # har 10 soniyada tekshiradi
         
 # Faylning eng oxiri
