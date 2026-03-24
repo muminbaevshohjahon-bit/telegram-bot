@@ -346,31 +346,34 @@ def check_subscription_periodically():
         for uid, user in user_data.items():
             if user.get('step') == 'waiting_subscription':
                 if check_subscription(uid):
-                    user['step'] = 'get_name'
+                    user['step'] = 'get_name' # Bosqichni ism so'rashga o'zgartiramiz
                     save_data()
                     
-                    # Avtomatik xabar
+                    # 1. Tabrik xabari
                     bot.send_message(uid, "🎉 Rahmat! Endi botdan foydalana olasiz!")
-
-                    # Qoidalar
+                    
+                    # 2. Qoidalar xabari
                     rules_text = (
                         "📜 <b>Qoidalar:</b>\n\n"
                         "Botga start bosib registratsiyadan so‘ng chellenjni boshlash mumkin.\n\n"
-                        "1) Kitob mutolaasi\n"
-                        "2) Jismoniy mashq\n"
-                        "3) Shakarsiz hayot\n"
-                        "4) 5000 so‘mdan sarmoya\n"
-                        "5) Gazsiz ichimlik\n"
-                        "6) Tongda detoks\n"
-                        "7) 2 daqiqa sukunat\n"
-                        "8) DEEP WORK (chalg'imasdan 25 daqiqa ishlash)\n\n"
+                        "1) Kitob mutolaasi\n2) Jismoniy mashq\n3) Shakarsiz hayot\n"
+                        "4) 5000 so‘mdan sarmoya\n5) Gazsiz ichimlik\n6) Tongda detoks\n"
+                        "7) 2 daqiqa sukunat\n8) DEEP WORK (chalg'imasdan 25 daqiqa ishlash)\n\n"
                         "Xamma topshiriq sodda, minimalini bajarish talab qilinadi. "
-                        "Jismoniy mashq – har qanday yurish yoki 10 ta otdjimaniya, "
-                        "detoks – uyg‘ongach kamida 1 soat telefonni ishlatmang, "
-                        "sarmoya – kuniga 5000 so‘m, yig‘ing yoki IMAN omonatiga qo‘ying.\n\n"
                         "Biz sizni toqatingizdan ortig‘iga majbur qilmaymiz 😊"
                     )
                     bot.send_message(uid, rules_text, parse_mode='HTML')
+
+                    # 3. RO'YXATDAN O'TISH XABARI (Welcome text)
+                    welcome_text = (
+                        "<b><i>Assalomu aleykum, hush kelibsiz!</i></b>\n"
+                        "<b><i>Men MBE useful tomonidan yaratilgan botman!</i></b>\n\n"
+                        "<b><i>Maqsadimiz 30 kunlik chellenj davomida intizomni shakllantirish.</i></b>\n\n"
+                        "Keling tanishib olaylik... Ismingizni kiriting:"
+                    )
+                    bot.send_message(uid, welcome_text, parse_mode='HTML')
+                    
+        time.sleep(10)
                 else:
                     # Agar foydalanuvchi hali obuna bo'lmagan bo'lsa, eslatib qo'yish
                     bot.send_message(uid, f"⚠️ Iltimos, kanalga obuna bo‘ling: {CHANNEL_ID}")
