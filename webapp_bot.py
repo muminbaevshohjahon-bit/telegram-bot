@@ -118,13 +118,8 @@ def start(message):
     if user['step'] == 'main':
         bot.send_message(uid, "Siz allaqachon ro'yxatdan o'tgansiz!", reply_markup=main_menu())
         return
-    
-    # MUAMMO SHU YERDA EDI: 
-if user['step'] == 'main':
-        bot.send_message(uid, "Siz allaqachon ro'yxatdan o'tgansiz!", reply_markup=main_menu())
-        return
 
-    # Mana bu uchta qator vertikal bir chiziqda bo'lishi shart:
+    # Mana bu qatordan boshlab pastki qism tekis bo'lishi shart
     user['step'] = 'get_name'
     save_data()
     
