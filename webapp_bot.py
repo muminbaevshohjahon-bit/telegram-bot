@@ -325,29 +325,6 @@ if __name__ == "__main__":
     bot.infinity_polling()
 
 
-Mukammal dasturchi nima qilishing kerak!
-- start dan keyin Kanalga obuna so'ralsin,obuna bo'lingach 
-- Rahmat!
-- Agar obuna bo'lmasa "Iltimos avval obuna bo'ling" desin
-- Keyin yuqoridagi kodda yozilgan kabi tanishuv
-- Ism
--kun/oy/yil
--Tahallus
-- Bot random ID raqam beradi
-- Tabriklaydi "Tabrikleyshn,botdan foydalanishingiz mumkin!"
-- Ishtirokchi chellenjlarni bajaradi
-har bir bajargan chellenjdan keyin motivatsiya +10 bal so'z keladi
-agar kunda 20% dan oshirsa Tabriklash uchun gif(motivation words)+gif
-agar topshiriqlarni bajarib finishni bossa kunlik qilingan topshiriqlari foiz va boshqa ishitrkochilardan qancha orqada ekanligi chiqadi
-"Harakatga undovchi motivatsiyalar kun davomid" 06-09-12-16-19 atrofida
-agar 23:00 gacha finish bosmasa bot o'zi avtomat finish bosib natijani + motivatsiya jo'natib qo'yadi
-Peshqadamlar qismida " - kim necha foiz bilan nechanchi o'rinda ekanlgini foiz va ID orqali ko'ra oladi (Ism ko'rinmaydi)
-Natijalar bo'limida chiroyli piktogrammalar orqali necha foiz bajaragni ko'rinib turadi.
-
-
-Menda HTML kodi juda to'g'ri ishlayabdi sen tepadagi senariyni yuqorida yozgan kodimga joylashtirib ma'nosini o'zgartirmaagn holda Web.app ga yuklash uchun tayyor qilib ber 
-pastda Html kod:
-
 <!DOCTYPE html>
 <html lang="uz">
 <head>
