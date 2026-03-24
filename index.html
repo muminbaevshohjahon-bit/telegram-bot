@@ -1,170 +1,147 @@
 <!DOCTYPE html>
 <html lang="uz">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chellenj Tracker</title>
-
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-
-<style>
-    body {
-        font-family: Arial, sans-serif;
-        background: #0f172a;
-        color: white;
-        margin: 0;
-        padding: 15px;
-    }
-
-    h2 {
-        text-align: center;
-    }
-
-    .card {
-        background: #1e293b;
-        padding: 15px;
-        margin: 10px 0;
-        border-radius: 12px;
-        display: flex;
-        justify-content: space-between;
-        cursor: pointer;
-        transition: 0.2s;
-    }
-
-    .card:hover {
-        background: #334155;
-    }
-
-    .grid {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        gap: 6px;
-        margin-top: 15px;
-    }
-
-    .day {
-        padding: 10px;
-        text-align: center;
-        border-radius: 8px;
-        background: #1e293b;
-        cursor: pointer;
-    }
-
-    .done {
-        background: #22c55e;
-    }
-
-    .active {
-        border: 2px solid yellow;
-    }
-
-    button {
-        margin-top: 15px;
-        width: 100%;
-        padding: 12px;
-        border: none;
-        border-radius: 10px;
-        background: #3b82f6;
-        color: white;
-        font-size: 16px;
-    }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intizom Tracker</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: white; padding: 15px; margin: 0; -webkit-user-select: none; }
+        .streak-header { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px; border: 1px solid #3b82f6; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.2); }
+        .card { background: #1e293b; padding: 15px; margin: 10px 0; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border: 1px solid transparent; transition: all 0.2s ease; }
+        .card:active { transform: scale(0.98); background: #334155; }
+        .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-top: 15px; }
+        .day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: #1e293b; color: #475569; font-weight: bold; font-size: 14px; transition: 0.3s; }
+        .done { background: #22c55e !important; color: white !important; box-shadow: 0 0 10px rgba(34, 197, 94, 0.4); }
+        .active { border: 2px solid #facc15; color: white; background: #334155; }
+        button { margin-top: 20px; width: 100%; padding: 15px; border: none; border-radius: 12px; background: #3b82f6; color: white; font-weight: bold; font-size: 16px; cursor: pointer; }
+        button:active { background: #2563eb; }
+    </style>
 </head>
-
 <body>
 
-<h2>🔥 Chellenjlar</h2>
+    <div class="streak-header">
+        <h3 id="streakDisplay">🔥 Yuklanmoqda...</h3>
+    </div>
 
-<div id="main"></div>
+    <div id="mainView">
+        <h2 style="text-align: center;">🎯 Kunlik Vazifalar</h2>
+        <div id="taskList"></div>
+    </div>
 
-<div id="calendar" style="display:none;">
-    <h3 id="title"></h3>
-    <div class="grid" id="grid"></div>
-    <button onclick="back()">⬅️ Orqaga</button>
-</div>
+    <div id="calendarView" style="display:none;">
+        <h3 id="taskTitle" style="text-align: center; color: #38bdf8;"></h3>
+        <div class="grid" id="grid"></div>
+        <button onclick="showMain()">⬅️ Orqaga qaytish</button>
+    </div>
 
-<script>
-const tg = window.Telegram.WebApp;
-tg.expand();
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
 
-const tasks = [
-    "Tongda telefonsiz detox 1 soat 📱 ",
-    "Shakarsiz hayot🧘",
-    "Kitob mutolasi 15 daqiqa 📕",
-    "Gazsiz ichimliklar 🍵",
-    "23:00 gacha uyqu 🌙",
-    "2 daqiqa sukunat 🧘",
-    "DEEP WORK 🧘",
-    "Kuniga 5000 so'm sarmoya 💸 "
-];
+        // 1. URL parametrlaridan joriy kunni o'qib olish
+        const urlParams = new URLSearchParams(window.location.search);
+        const userDay = parseInt(urlParams.get('day')) || 1;
 
-let userDay = parseInt(localStorage.getItem("day")) || 1;
+        document.getElementById("streakDisplay").innerText = `🔥 Siz ${userDay}-kundasiz`;
 
-function renderMain(){
-    const main = document.getElementById("main");
-    main.innerHTML = "";
+        const tasks = [
+            "Tongda telefonsiz detox 1 soat 📱",
+            "Shakarsiz hayot 🧘",
+            "Kitob mutolasi 15 daqiqa 📚",
+            "Gazsiz ichimliklar 🍵",
+            "23:00 gacha uyqu 🌙",
+            "2 daqiqa sukunat 🧘",
+            "DEEP WORK 🧘",
+            "Kuniga 5000 so'm sarmoya 💸"
+        ];
 
-    tasks.forEach(task => {
-        const div = document.createElement("div");
-        div.className = "card";
-        div.innerHTML = `<span>${task}</span><span>➡️</span>`;
-        div.onclick = () => openCalendar(task);
-        main.appendChild(div);
-    });
-}
-
-function openCalendar(task){
-    document.getElementById("main").style.display = "none";
-    document.getElementById("calendar").style.display = "block";
-    document.getElementById("title").innerText = task;
-
-    const grid = document.getElementById("grid");
-    grid.innerHTML = "";
-
-    for(let i=1;i<=30;i++){
-        const day = document.createElement("div");
-        day.className = "day";
-        day.innerText = i;
-
-        let key = `${task}_${i}`;
-
-        if(localStorage.getItem(key) === "done"){
-            day.classList.add("done");
+        function renderTasks() {
+            const list = document.getElementById("taskList");
+            list.innerHTML = "";
+            tasks.forEach(task => {
+                const div = document.createElement("div");
+                div.className = "card";
+                div.innerHTML = `<span>${task}</span><span>➡️</span>`;
+                div.onclick = () => openCalendar(task);
+                list.appendChild(div);
+            });
         }
 
-        if(i === userDay){
-            day.classList.add("active");
-        }
+        function openCalendar(task) {
+            document.getElementById("mainView").style.display = "none";
+            document.getElementById("calendarView").style.display = "block";
+            document.getElementById("taskTitle").innerText = task;
 
-        day.onclick = () => {
-            if(i === userDay){
-                const isDone = day.classList.toggle("done");
-                localStorage.setItem(key, isDone ? "done" : "no");
+            const grid = document.getElementById("grid");
+            grid.innerHTML = "";
 
-                if(isDone){
-                    tg.HapticFeedback.notificationOccurred("success");
+            for (let i = 1; i <= 30; i++) {
+                const dayDiv = document.createElement("div");
+                dayDiv.className = "day";
+                dayDiv.innerText = i;
 
-                    tg.sendData(JSON.stringify({
-                        action: "done",
-                        task: task
-                    }));
+                const key = `task_${task}_day_${i}`;
+                if (localStorage.getItem(key) === "done") dayDiv.classList.add("done");
+
+                if (i === userDay) {
+                    dayDiv.classList.add("active");
+                    dayDiv.onclick = () => {
+                        if (!dayDiv.classList.contains("done")) {
+                            handleTaskClick(dayDiv, task, i);
+                        }
+                    };
+                } else {
+                    dayDiv.onclick = () => tg.showAlert(`Siz hozircha faqat ${userDay}-kun vazifasini belgilay olasiz!`);
                 }
-            } else {
-                tg.showAlert("Faqat bugungi kunni belgilash mumkin!");
+                grid.appendChild(dayDiv);
             }
-        };
+        }
 
-        grid.appendChild(day);
-    }
-}
+        function handleTaskClick(el, taskName, dayNum) {
+            if (taskName.includes("DEEP WORK")) {
+                tg.showPopup({
+                    title: 'Deep Work seansi',
+                    message: 'Bugun necha soat chuqur diqqat bilan ishladingiz?',
+                    buttons: [
+                        {id: '1', type: 'default', text: '1-2 soat'},
+                        {id: '2', type: 'default', text: '3-5 soat'},
+                        {id: '3', type: 'default', text: '5+ soat'},
+                        {id: 'cancel', type: 'destructive', text: 'Bekor qilish'}
+                    ]
+                }, (buttonId) => {
+                    if (buttonId !== 'cancel') {
+                        let hours = buttonId === '1' ? "1-2" : buttonId === '2' ? "3-5" : "5+";
+                        completeTask(el, taskName, dayNum, hours);
+                    }
+                });
+            } else {
+                completeTask(el, taskName, dayNum);
+            }
+        }
 
-function back(){
-    document.getElementById("main").style.display = "block";
-    document.getElementById("calendar").style.display = "none";
-}
+        function completeTask(el, taskName, dayNum, extra = "") {
+            const key = `task_${taskName}_day_${dayNum}`;
+            el.classList.add("done");
+            localStorage.setItem(key, "done");
+            
+            tg.HapticFeedback.impactOccurred('medium');
+            
+            // Botga yuboriladigan JSON ma'lumot
+            tg.sendData(JSON.stringify({
+                action: "done",
+                task: taskName,
+                day: dayNum,
+                duration: extra 
+            }));
+        }
 
-renderMain();
-</script>
+        function showMain() {
+            document.getElementById("mainView").style.display = "block";
+            document.getElementById("calendarView").style.display = "none";
+        }
 
+        renderTasks();
+    </script>
 </body>
 </html>
