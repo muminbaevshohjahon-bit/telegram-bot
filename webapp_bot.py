@@ -1,4 +1,4 @@
-Endi Web.app qismini ishlaymiz! import telebot
+#Endi Web.app qismini ishlaymiz! import telebot
 import os
 import random
 import json
@@ -45,7 +45,7 @@ def save_data():
         json.dump(user_data, f, indent=4)
 
 user_data = load_data()
-TOTAL_TASKS = 7
+TOTAL_TASKS = 8
 
 # MOTIVATSIYALAR
 CUSTOM_MOTIVATIONS = [
