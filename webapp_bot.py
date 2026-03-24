@@ -1,4 +1,5 @@
-#Endi Web.app qismini ishlaymiz! import telebot
+#Endi Web.app qismini ishlaymiz! 
+import telebot
 import os
 import random
 import json
