@@ -122,15 +122,15 @@ threading.Thread(target=reminder_thread, daemon=True).start()
 @bot.message_handler(commands=['start'])
 def start(message):
     uid = message.chat.id
-    if not check_sub(uid):
-        markup = InlineKeyboardMarkup()
-        markup.add(InlineKeyboardButton("Kanalga a'zo bo'lish 📢", url=f"https://t.me/{CHANNELS[0].replace('@', '')}"))
-        bot.send_message(uid, "<b>Botdan foydalanish uchun kanalimizga a'zo bo'ling!</b>", parse_mode='HTML', reply_markup=markup)
-        return
-
     user = get_user(uid)
+    
+    # Agar foydalanuvchi ismini kiritgan bo'lsa, unga menyuni yuborish
     if user.get('info', {}).get('name'):
-        bot.send_message(uid, "Xush kelibsiz! Vazifalarni bajarishda davom eting.", reply_markup=main_menu(uid))
+        bot.send_message(
+            uid, 
+            "Xush kelibsiz! Vazifalarni bajarishda davom eting.", 
+            reply_markup=main_menu(uid) # <--- BU QATOR KEYBOARDNI CHIQARADI
+        )
         return
 
     user_data[str(uid)]['step'] = 'get_name'
@@ -166,7 +166,7 @@ def get_nick(message):
     user_data[uid]['info']['nickname'] = message.text
     user_data[uid]['step'] = 'main'
     save_data()
-    bot.send_message(uid, "Tabrikleymiz, ro'yxatdan o'tildi!🔥", reply_markup=main_menu(uid))
+    bot.send_message(uid, "Tabrikleyshn, ro'yxatdan o'tildi!🔥", reply_markup=main_menu(uid))
 
 # --- PESHQADAMLAR ---
 @bot.message_handler(func=lambda m: m.text == "Peshqadamlar 🏆")
