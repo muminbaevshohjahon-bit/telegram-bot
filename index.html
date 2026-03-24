@@ -38,8 +38,17 @@
 
         const tasks = ["Tongda telefonsiz detox 📵", "Kitob mutolasi 📚", "Sugar detox 🍬", "Gazsiz ichimliklar 🥤", "5000 so'm sarmoya 💰", "Jismoniy mashq 💪", "Soat 23:00 gacha uxlash 🌛", "1 daqiqa sukunat 🧘‍♂️"];
         
-        // Bu kunlik tartibni aniqlash (Masalan, local storage'da saqlash)
-        let userDay = parseInt(localStorage.getItem('current_discipline_day')) || 1;
+        // --- YANGILANGAN QISM ---
+        // URL'dan 'day' parametrini olish (masalan: ?day=2)
+        const urlParams = new URLSearchParams(window.location.search);
+        const dayFromUrl = parseInt(urlParams.get('day'));
+
+        // Agar URL'da kun bo'lsa shuni oladi, bo'lmasa localStorage yoki 1-kunni oladi
+        let userDay = dayFromUrl || parseInt(localStorage.getItem('current_discipline_day')) || 1;
+        
+        // Har doim joriy kunni saqlab borish
+        localStorage.setItem('current_discipline_day', userDay);
+        // -------------------------
 
         function showMain() {
             document.getElementById('mainView').style.display = 'block';
@@ -74,23 +83,3 @@
                 day.innerText = i;
                 
                 const key = `t_${name}_d_${i}`;
-                if (localStorage.getItem(key)) day.classList.add('done');
-
-                day.onclick = () => {
-                    if (i !== userDay) {
-                        tg.showAlert("Faqat bugungi kunni belgilash mumkin!");
-                        return;
-                    }
-                    if (!day.classList.contains('done')) {
-                        day.classList.add('done');
-                        localStorage.setItem(key, 'true');
-                        tg.sendData(JSON.stringify({action: "done", task: name}));
-                    }
-                };
-                grid.appendChild(day);
-            }
-        }
-        init();
-    </script>
-</body>
-</html>
