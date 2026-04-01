@@ -178,35 +178,64 @@ def get_nick(message):
                      f"Ushbu ID orqali reytingda o'z o'rningizni ko'ra olasiz.", 
                      parse_mode='HTML', reply_markup=main_menu())
 
-# --- ADMIN: USERS EXCEL ---
-@bot.message_handler(commands=['users'])
-def admin_excel(message):
-    if message.chat.id == ADMIN_ID:
+@bot.message_handler(commands=['users', 'list'])
+def admin_dashboard(message):
+    # Faqat belgilangan ADMIN_ID foydalana olishini tekshiramiz
+    if message.from_user.id == ADMIN_ID:
         if not user_data:
-            bot.send_message(ADMIN_ID, "Hozircha foydalanuvchilar yo'q.")
+            bot.send_message(ADMIN_ID, "📭 Hozircha hech kim ro'yxatdan o'tmagan.")
             return
+
+        # 1. Telegram uchun qisqacha matnli ro'yxat
+        hisobot = "📋 <b>Ishtirokchilar ro'yxati:</b>\n\n"
+        hisobot += "№ | ID | Ism | Kun | Ball\n"
+        hisobot += "--------------------------------\n"
         
-        rows = []
-        for uid, data in user_data.items():
+        excel_uchun_malumot = []
+        for i, (uid, data) in enumerate(user_data.items(), 1):
             info = data.get('info', {})
-            rows.append({
+            p_id = info.get('participant_id', 'Noma'lum')
+            ism = info.get('name', 'Noma'lum')
+            kun = data.get('current_day', 1)
+            ball = data.get('total_score', 0)
+            tug_yil = info.get('birth_year', '-')
+
+            # Telegram xabariga faqat birinchi 20 kishini chiqaramiz (xabar sig'ishi uchun)
+            if i <= 20:
+                hisobot += f"{i}. <code>{p_id}</code> | {ism} | {kun}-kun | {ball}\n"
+
+            # Excel uchun barcha ma'lumotlarni yig'amiz
+            excel_uchun_malumot.append({
                 "Telegram ID": uid,
-                "Ishtirokchi ID": info.get('participant_id', '-'),
-                "Ism": info.get('name', '-'),
-                "Tug'ilgan yili": info.get('birth_year', '-'),
-                "Ball": data.get('total_score', 0),
-                "Kun": data.get('current_day', 1)
+                "Ishtirokchi ID": p_id,
+                "Foydalanuvchi ismi": ism,
+                "Tug'ilgan yili": tug_yil,
+                "Joriy kun": kun,
+                "Umumiy to'plangan ball": ball
             })
+
+        if len(user_data) > 20:
+            hisobot += f"\n...va yana {len(user_data) - 20} ta foydalanuvchi."
         
-        df = pd.DataFrame(rows)
-        file_name = "users_list.xlsx"
-        df.to_excel(file_name, index=False)
-        
-        with open(file_name, 'rb') as doc:
-            bot.send_document(ADMIN_ID, doc, caption="📊 Foydalanuvchilar ma'lumotlari (Excel)")
-        os.remove(file_name)
+        bot.send_message(ADMIN_ID, hisobot, parse_mode='HTML')
+
+        # 2. To'liq ma'lumotlarni Excel formatida tayyorlash
+        try:
+            df = pd.DataFrame(excel_uchun_malumot)
+            fayl_nomi = "foydalanuvchilar_bazasi.xlsx"
+            df.to_excel(fayl_nomi, index=False)
+            
+            with open(fayl_nomi, 'rb') as doc:
+                bot.send_document(ADMIN_ID, doc, caption="📊 Barcha a'zolar haqida to'liq ma'lumot (Excel)")
+            
+            # Yuborgandan so'ng vaqtinchalik faylni o'chirib tashlaymiz
+            os.remove(fayl_nomi)
+        except Exception as e:
+            bot.send_message(ADMIN_ID, f"❌ Excel yaratishda xatolik yuz berdi: {e}")
+
     else:
-        bot.send_message(message.chat.id, "❌ Bu buyruq faqat admin uchun!")
+        # Agar admin bo'lmagan odam yozsa
+        bot.send_message(message.chat.id, f"❌ Bu buyruq faqat admin uchun! Sizning ID: <code>{message.from_user.id}</code>")
 
 # --- ASOSIY FUNKSIYALAR ---
 @bot.message_handler(func=lambda m: m.text == "Peshqadamlar 🏆")
