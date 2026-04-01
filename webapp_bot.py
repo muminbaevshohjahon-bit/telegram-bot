@@ -81,18 +81,46 @@ GIFS = [
 ]
 
 # --- HELPER FUNCTIONS ---
-def main_menu(uid): 
+def main_menu(uid):
     uid = str(uid)
     user = get_user(uid)
-    current_day = user.get('current_day', 1) 
+    current_day = user.get('current_day', 1)
     
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    web_url = f"https://muminbaevshohjahon-bit.github.io/telegram-bot/?day={current_day}&v={random.randint(1, 999999)}"
+    # URL oxiriga vaqt tamg'asini (timestamp) qo'shish keshni tozalashga yordam beradi
+    timestamp = int(time.time())
+    web_url = f"https://muminbaevshohjahon-bit.github.io/telegram-bot/?day={current_day}&v={timestamp}"
     
     markup.add(KeyboardButton("Chellenjlar 🗓", web_app=WebAppInfo(url=web_url)))
     markup.add(KeyboardButton("Peshqadamlar 🏆"), KeyboardButton("Mening natijam 📊"))
     markup.add(KeyboardButton("Finish 🏁"))
     return markup
+
+@bot.message_handler(func=lambda m: m.text == "Finish 🏁")
+@subscription_required
+def finish_day(message):
+    uid = str(message.chat.id)
+    user = get_user(uid)
+    today = datetime.now().strftime('%d/%m')
+    
+    if any(today in entry for entry in user.get('history', [])):
+        bot.send_message(uid, "Bugun yakunlab bo'lingan! Ertaga yangi kun boshlanadi. ✨")
+        return
+
+    # Ballarni va kunni hisoblash
+    percent = int((len(user.get('completed_today', [])) / TOTAL_TASKS) * 100)
+    
+    # ... feedback mantiqi ...
+
+    user.setdefault('history', []).append(f"{today}: {percent}%")
+    user['completed_today'] = []
+    user['current_day'] = user.get('current_day', 1) + 1 # Kun bittaga oshdi
+    save_data()
+    
+    # Animatsiya yuborgandan so'ng, yangi menyuni ham yuboramiz!
+    bot.send_animation(uid, random.choice(GIFS), 
+                       caption=f"🏁 Natija: {percent}%\n\n{feedback}\n\nErtangi kun uchun menyu yangilandi 👇",
+                       reply_markup=main_menu(uid)) # SHU QATOR MUHIM
 
 def check_subscription(user_id):
     try:
