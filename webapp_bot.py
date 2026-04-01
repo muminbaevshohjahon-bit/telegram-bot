@@ -4,11 +4,11 @@ import random
 import json
 import threading
 import time
-import pandas as pd # Excel uchun: pip install pandas openpyxl
+import pandas as pd
 from datetime import datetime
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
 
-# Vaqt zonasi
+# --- KONFIGURATSIYA ---
 os.environ['TZ'] = 'Asia/Tashkent'
 if hasattr(time, 'tzset'):
     time.tzset()
@@ -16,23 +16,8 @@ if hasattr(time, 'tzset'):
 TOKEN = os.getenv("TOKEN")
 bot = telebot.TeleBot(TOKEN)
 
-# --- ADMIN & CHANNEL ---
 ADMIN_ID = 6338204692
 CHANNEL_ID = "@caffeinefan"
-
-# --- MA'LUMOTLAR ---
-def load_data():
-    try:
-        with open('users_db.json', 'r') as f:
-            return json.load(f)
-    except:
-        return {}
-
-def save_data():
-    with open('users_db.json', 'w') as f:
-        json.dump(user_data, f, indent=4)
-
-user_data = load_data()
 TOTAL_TASKS = 8
 
 CUSTOM_MOTIVATIONS = [
