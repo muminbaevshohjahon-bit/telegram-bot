@@ -54,7 +54,7 @@ CUSTOM_MOTIVATIONS = [
 FINISH_MOTIVATIONS = [
     "Dahshat! Vapshe zo'r, barakalla! 🔥", "Sen o'ylagandan ham kuchlisan, davom et! 💪",
     "Intizom — bu o'zingga bo'lgan hurmat. 🌟", "Bo'lar ekanku, senga ishonaman!",
-    "Bo'shashma zo'r ketayabsan", "Ko'zim to'rt bo'lib ketdi, malades."
+    "Bo'shashma zo'r ketayabsan", "Ko'zim to'rt bo'lib ketdi, malades", "Muhimi harakat qilayabsan,lekin bundan ko'pini qila olasan."
 ]
 
 GIFS = [
@@ -69,15 +69,15 @@ GIFS = [
 ]
 
 # --- HELPER FUNCTIONS ---
-def get_user(uid):
+def main_menu(uid): # uid argumentini qo'shdik
     uid = str(uid)
-    if uid not in user_data:
-        user_data[uid] = {'total_score': 0, 'history': [], 'completed_today': [], 'info': {}, 'step': 'start', 'current_day': 1}
-    return user_data[uid]
-
-def main_menu():
+    user = get_user(uid)
+    current_day = user.get('current_day', 1) # Foydalanuvchining joriy kunini olamiz
+    
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    web_url = f"https://muminbaevshohjahon-bit.github.io/telegram-bot/?v={random.randint(1, 999999)}"
+    # URL oxiriga ?day=X parametrini qo'shamiz
+    web_url = f"https://muminbaevshohjahon-bit.github.io/telegram-bot/?day={current_day}&v={random.randint(1, 999999)}"
+    
     markup.add(KeyboardButton("Chellenjlar 🗓", web_app=WebAppInfo(url=web_url)))
     markup.add(KeyboardButton("Peshqadamlar 🏆"), KeyboardButton("Mening natijam 📊"))
     markup.add(KeyboardButton("Finish 🏁"))
@@ -192,10 +192,10 @@ def admin_dashboard(message):
         hisobot += "--------------------------------\n"
         
         excel_uchun_malumot = []
-        for i, (uid, data) in enumerate(user_data.items(), 1):
+       for i, (uid, data) in enumerate(user_data.items(), 1):
             info = data.get('info', {})
-            p_id = info.get('participant_id', 'Noma'lum')
-            ism = info.get('name', 'Noma'lum')
+            p_id = info.get('participant_id', "Noma'lum") 
+            ism = info.get('name', "Noma'lum")           
             kun = data.get('current_day', 1)
             ball = data.get('total_score', 0)
             tug_yil = info.get('birth_year', '-')
