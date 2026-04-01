@@ -180,25 +180,37 @@ def get_nick(message):
 
 @bot.message_handler(commands=['users', 'list'])
 def admin_dashboard(message):
-    # Faqat belgilangan ADMIN_ID foydalana olishini tekshiramiz
+    # Bu qator funksiya ichida, shuning uchun 4 ta probel o'ngda
     if message.from_user.id == ADMIN_ID:
         if not user_data:
             bot.send_message(ADMIN_ID, "📭 Hozircha hech kim ro'yxatdan o'tmagan.")
             return
 
-        # 1. Telegram uchun qisqacha matnli ro'yxat
         hisobot = "📋 <b>Ishtirokchilar ro'yxati:</b>\n\n"
         hisobot += "№ | ID | Ism | Kun | Ball\n"
         hisobot += "--------------------------------\n"
         
         excel_uchun_malumot = []
-       for i, (uid, data) in enumerate(user_data.items(), 1):
+        # DIQQAT: 'for' qatori 'if' bilan bir xil darajada bo'lishi kerak!
+        for i, (uid, data) in enumerate(user_data.items(), 1):
             info = data.get('info', {})
-            p_id = info.get('participant_id', "Noma'lum") 
-            ism = info.get('name', "Noma'lum")           
+            p_id = info.get('participant_id', "Noma'lum")
+            ism = info.get('name', "Noma'lum")
             kun = data.get('current_day', 1)
             ball = data.get('total_score', 0)
             tug_yil = info.get('birth_year', '-')
+
+            if i <= 20:
+                hisobot += f"{i}. <code>{p_id}</code> | {ism} | {kun}-kun | {ball}\n"
+
+            excel_uchun_malumot.append({
+                "Telegram ID": uid,
+                "Ishtirokchi ID": p_id,
+                "Foydalanuvchi ismi": ism,
+                "Tug'ilgan yili": tug_yil,
+                "Joriy kun": kun,
+                "Umumiy to'plangan ball": ball
+            })
 
             # Telegram xabariga faqat birinchi 20 kishini chiqaramiz (xabar sig'ishi uchun)
             if i <= 20:
