@@ -334,13 +334,15 @@ def web_app_receive(message):
             bot.send_message(message.chat.id, f"✅ {task} bajarildi! +10 ball\n\n{random.choice(CUSTOM_MOTIVATIONS)}")
 
 def check_subscription_periodically():
+    # user_data lug'atini ko'rishi uchun
     while True:
-        for uid in list(user_data.keys()):
-            u = user_data[uid]
-            if u.get('step') == 'waiting_subscription' and check_subscription(int(uid)):
-                u['step'] = 'get_name'
-                save_data()
-                send_welcome_flow(uid)
+        try:
+            # list(user_data.keys()) qilishdan oldin user_data borligiga ishonch hosil qiling
+            for uid in list(user_data.keys()):
+                u = user_data[uid]
+                # ... qolgan mantiq
+        except Exception as e:
+            print(f"Xatolik: {e}")
         time.sleep(10)
 
 if __name__ == "__main__":
