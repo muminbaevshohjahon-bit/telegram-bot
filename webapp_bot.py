@@ -20,6 +20,33 @@ ADMIN_ID = 6338204692
 CHANNEL_ID = "@caffeinefan"
 TOTAL_TASKS = 8
 
+# --- DATA HANDLING (Xatoni tuzatish uchun qo'shildi) ---
+def load_data():
+    if os.path.exists('user_data.json'):
+        with open('user_data.json', 'r') as f:
+            return json.load(f)
+    return {}
+
+def save_data():
+    with open('user_data.json', 'w') as f:
+        json.dump(user_data, f, indent=4)
+
+user_data = load_data() # Global o'zgaruvchi e'lon qilindi
+
+def get_user(uid):
+    uid = str(uid)
+    if uid not in user_data:
+        user_data[uid] = {
+            'total_score': 0, 
+            'history': [], 
+            'completed_today': [], 
+            'info': {}, 
+            'step': 'main', 
+            'current_day': 1
+        }
+    return user_data[uid]
+
+# --- MOTIVATIONS & GIFS ---
 CUSTOM_MOTIVATIONS = [
     "Sen boshlamasang, hech narsa boshlanmaydi. 🔥", "Bugungi og‘riq — ertangi kuch. 💪",
     "Eng zo‘r vaqt — hozir. 🚀", "Intizom — bu o'ziga berilgan va'dani bajarishdir. ✨",
@@ -54,13 +81,12 @@ GIFS = [
 ]
 
 # --- HELPER FUNCTIONS ---
-def main_menu(uid): # uid argumentini qo'shdik
+def main_menu(uid): 
     uid = str(uid)
     user = get_user(uid)
-    current_day = user.get('current_day', 1) # Foydalanuvchining joriy kunini olamiz
+    current_day = user.get('current_day', 1) 
     
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    # URL oxiriga ?day=X parametrini qo'shamiz
     web_url = f"https://muminbaevshohjahon-bit.github.io/telegram-bot/?day={current_day}&v={random.randint(1, 999999)}"
     
     markup.add(KeyboardButton("Chellenjlar 🗓", web_app=WebAppInfo(url=web_url)))
@@ -84,13 +110,10 @@ def subscription_required(func):
         return func(message)
     return wrapper
 
-# --- WELCOME FLOW (TASDIQ + QOIDALAR + TANISHUV) ---
 def send_welcome_flow(uid):
     uid = int(uid)
-    # 1. Tasdiq
     bot.send_message(uid, "✅ Rahmat! Siz kanalga muvaffaqiyatli obuna bo'ldingiz!")
     
-    # 2. Qoidalar
     rules_text = (
         "📜 <b>Qoidalar:</b>\n\n"
         "1) Kitob mutolaasi\n2) Jismoniy mashq\n3) Shakarsiz hayot\n"
@@ -101,7 +124,6 @@ def send_welcome_flow(uid):
     )
     bot.send_message(uid, rules_text, parse_mode='HTML')
     
-    # 3. Welcome text
     welcome_text = (
         "<b><i>Assalomu aleykum, hush kelibsiz!</i></b>\n"
         "<b><i>Men MBE useful tomonidan yaratilgan botman!</i></b>\n\n"
@@ -121,7 +143,7 @@ def start(message):
         save_data()
         return
     if user['step'] == 'main':
-        bot.send_message(uid, "Siz allaqachon ro'yxatdan o'tgansiz!", reply_markup=main_menu())
+        bot.send_message(uid, "Siz allaqachon ro'yxatdan o'tgansiz!", reply_markup=main_menu(uid))
         return
 
     user['step'] = 'get_name'
@@ -140,7 +162,7 @@ def get_name(message):
 def get_year(message):
     uid = str(message.chat.id)
     user_data[uid]['info']['birth_year'] = message.text
-    user_data[uid]['step'] = 'get_nick' # To'g'ridan to'g'ri nick/id bosqichiga
+    user_data[uid]['step'] = 'get_nick'
     save_data()
     bot.send_message(message.chat.id, "O'zingiz uchun taxallus (Nickname) tanlang:")
 
@@ -148,24 +170,19 @@ def get_year(message):
 def get_nick(message):
     uid = str(message.chat.id)
     user = user_data[uid]
-    
-    # RANDOM ID BERISH
     participant_id = f"ID{random.randint(1000, 9999)}"
-    
     user['info']['nickname'] = message.text
     user['info']['participant_id'] = participant_id
     user['step'] = 'main'
     save_data()
-    
     bot.send_message(message.chat.id, 
                      f"🎉 Tabrikleyshn, ro'yxatdan o'tdingiz!\n\n"
                      f"Sizning maxsus ID raqamingiz: <b>{participant_id}</b>\n"
                      f"Ushbu ID orqali reytingda o'z o'rningizni ko'ra olasiz.", 
-                     parse_mode='HTML', reply_markup=main_menu())
+                     parse_mode='HTML', reply_markup=main_menu(uid))
 
 @bot.message_handler(commands=['users', 'list'])
 def admin_dashboard(message):
-    # Bu qator funksiya ichida, shuning uchun 4 ta probel o'ngda
     if message.from_user.id == ADMIN_ID:
         if not user_data:
             bot.send_message(ADMIN_ID, "📭 Hozircha hech kim ro'yxatdan o'tmagan.")
@@ -174,9 +191,8 @@ def admin_dashboard(message):
         hisobot = "📋 <b>Ishtirokchilar ro'yxati:</b>\n\n"
         hisobot += "№ | ID | Ism | Kun | Ball\n"
         hisobot += "--------------------------------\n"
-        
         excel_uchun_malumot = []
-        # DIQQAT: 'for' qatori 'if' bilan bir xil darajada bo'lishi kerak!
+        
         for i, (uid, data) in enumerate(user_data.items(), 1):
             info = data.get('info', {})
             p_id = info.get('participant_id', "Noma'lum")
@@ -197,41 +213,18 @@ def admin_dashboard(message):
                 "Umumiy to'plangan ball": ball
             })
 
-            # Telegram xabariga faqat birinchi 20 kishini chiqaramiz (xabar sig'ishi uchun)
-            if i <= 20:
-                hisobot += f"{i}. <code>{p_id}</code> | {ism} | {kun}-kun | {ball}\n"
-
-            # Excel uchun barcha ma'lumotlarni yig'amiz
-            excel_uchun_malumot.append({
-                "Telegram ID": uid,
-                "Ishtirokchi ID": p_id,
-                "Foydalanuvchi ismi": ism,
-                "Tug'ilgan yili": tug_yil,
-                "Joriy kun": kun,
-                "Umumiy to'plangan ball": ball
-            })
-
-        if len(user_data) > 20:
-            hisobot += f"\n...va yana {len(user_data) - 20} ta foydalanuvchi."
-        
         bot.send_message(ADMIN_ID, hisobot, parse_mode='HTML')
 
-        # 2. To'liq ma'lumotlarni Excel formatida tayyorlash
         try:
             df = pd.DataFrame(excel_uchun_malumot)
             fayl_nomi = "foydalanuvchilar_bazasi.xlsx"
             df.to_excel(fayl_nomi, index=False)
-            
             with open(fayl_nomi, 'rb') as doc:
                 bot.send_document(ADMIN_ID, doc, caption="📊 Barcha a'zolar haqida to'liq ma'lumot (Excel)")
-            
-            # Yuborgandan so'ng vaqtinchalik faylni o'chirib tashlaymiz
             os.remove(fayl_nomi)
         except Exception as e:
             bot.send_message(ADMIN_ID, f"❌ Excel yaratishda xatolik yuz berdi: {e}")
-
     else:
-        # Agar admin bo'lmagan odam yozsa
         bot.send_message(message.chat.id, f"❌ Bu buyruq faqat admin uchun! Sizning ID: <code>{message.from_user.id}</code>")
 
 # --- ASOSIY FUNKSIYALAR ---
@@ -257,7 +250,6 @@ def my_result(message):
     completed = len(data.get('completed_today', []))
     percent = int((completed / TOTAL_TASKS) * 100)
     progress_bar = "✅" * (percent // 10) + "⬜️" * (10 - (percent // 10))
-    
     res = f"📊 <b>Natijangiz:</b>\n\n👤 ID: {data['info'].get('participant_id')}\n⭐ Ball: {data.get('total_score')}\n📅 Kun: {data.get('current_day')}-kun\n🎯 Bugun: {percent}%\n{progress_bar}"
     bot.send_message(uid, res, parse_mode='HTML')
 
@@ -267,30 +259,24 @@ def finish_day(message):
     uid = str(message.chat.id)
     user = get_user(uid)
     today = datetime.now().strftime('%d/%m')
-    
     if any(today in entry for entry in user.get('history', [])):
         bot.send_message(uid, "Bugun yakunlab bo'lingan! ✨")
         return
-
     percent = int((len(user.get('completed_today', [])) / TOTAL_TASKS) * 100)
-    
     if percent < 50:
         feedback = "Yomon emas, lekin bundan ko'pini qila olasan! 💪"
     elif 50 <= percent < 90:
         feedback = "Zo'r natija! Sen bundanda ko'prog'iga loyiqsan! 🔥"
     else:
         feedback = "Malades, bo'lishi mumkin emas! 🚀"
-
     user.setdefault('history', []).append(f"{today}: {percent}%")
     user['completed_today'] = []
     user['current_day'] = user.get('current_day', 1) + 1
     save_data()
-    
     bot.send_animation(uid, random.choice(GIFS), caption=f"🏁 Natija: {percent}%\n\n{feedback}")
 
 # --- SCHEDULER ---
 def auto_scheduler():
-    threading.Thread(target=check_subscription_periodically, daemon=True).start()
     while True:
         now = datetime.now().strftime("%H:%M")
         reminders = {
@@ -307,7 +293,6 @@ def auto_scheduler():
                 try: bot.send_message(uid, reminders[now])
                 except: pass
             time.sleep(61)
-        
         if now == "23:59":
             today = datetime.now().strftime('%d/%m')
             for uid, data in user_data.items():
@@ -320,7 +305,6 @@ def auto_scheduler():
             time.sleep(61)
         time.sleep(30)
 
-# --- WEBAPP VA OBUNA TEKSHIRUV ---
 @bot.message_handler(content_types=['web_app_data'])
 def web_app_receive(message):
     data = json.loads(message.web_app_data.data)
@@ -334,17 +318,21 @@ def web_app_receive(message):
             bot.send_message(message.chat.id, f"✅ {task} bajarildi! +10 ball\n\n{random.choice(CUSTOM_MOTIVATIONS)}")
 
 def check_subscription_periodically():
-    # user_data lug'atini ko'rishi uchun
     while True:
         try:
-            # list(user_data.keys()) qilishdan oldin user_data borligiga ishonch hosil qiling
             for uid in list(user_data.keys()):
-                u = user_data[uid]
-                # ... qolgan mantiq
+                user = user_data[uid]
+                if user.get('step') == 'waiting_subscription':
+                    if check_subscription(uid):
+                        user['step'] = 'get_name'
+                        save_data()
+                        send_welcome_flow(uid)
         except Exception as e:
             print(f"Xatolik: {e}")
         time.sleep(10)
 
 if __name__ == "__main__":
     threading.Thread(target=auto_scheduler, daemon=True).start()
-    bot.infinity_polling()
+    threading.Thread(target=check_subscription_periodically, daemon=True).start()
+    print("Bot ishga tushdi...")
+    bot.infinity_polling(skip_pending=True)
