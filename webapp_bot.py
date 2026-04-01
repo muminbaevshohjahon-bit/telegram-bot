@@ -20,7 +20,7 @@ ADMIN_ID = 6338204692
 CHANNEL_ID = "@caffeinefan"
 TOTAL_TASKS = 8
 
-# --- DATA HANDLING (Xatoni tuzatish uchun qo'shildi) ---
+# --- DATA HANDLING ---
 def load_data():
     if os.path.exists('user_data.json'):
         with open('user_data.json', 'r') as f:
@@ -31,7 +31,7 @@ def save_data():
     with open('user_data.json', 'w') as f:
         json.dump(user_data, f, indent=4)
 
-user_data = load_data() # Global o'zgaruvchi e'lon qilindi
+user_data = load_data()
 
 def get_user(uid):
     uid = str(uid)
@@ -80,26 +80,63 @@ GIFS = [
     "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZjI3Y3J0M2lva2FzYjJ0d3F2MWFtNnQ5eWFpM2I3aHM4bGNicjE4ZSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/FRzg3omGn8C5ZYeafu/giphy.gif."
 ]
 
-# --- HELPER FUNCTIONS ---
 def main_menu(uid):
     uid = str(uid)
     user = get_user(uid)
     current_day = user.get('current_day', 1)
-    
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    # URL oxiriga vaqt tamg'asini (timestamp) qo'shish keshni tozalashga yordam beradi
     timestamp = int(time.time())
     web_url = f"https://muminbaevshohjahon-bit.github.io/telegram-bot/?day={current_day}&v={timestamp}"
-    
     markup.add(KeyboardButton("Chellenjlar 🗓", web_app=WebAppInfo(url=web_url)))
     markup.add(KeyboardButton("Peshqadamlar 🏆"), KeyboardButton("Mening natijam 📊"))
     markup.add(KeyboardButton("Finish 🏁"))
     return markup
 
+def check_subscription(user_id):
+    try:
+        member = bot.get_chat_member(CHANNEL_ID, user_id)
+        return member.status in ['creator', 'administrator', 'member']
+    except:
+        return False
+
+def subscription_required(func):
+    def wrapper(message):
+        uid = message.chat.id
+        if not check_subscription(uid):
+            bot.send_message(uid, f"❌ Avval kanalga obuna bo‘ling: {CHANNEL_ID}")
+            return
+        return func(message)
+    return wrapper
+
+# --- 2. FINISH HANDLER (Faqat bitta bo'lishi shart) ---
 @bot.message_handler(func=lambda m: m.text == "Finish 🏁")
 @subscription_required
 def finish_day(message):
     uid = str(message.chat.id)
+    user = get_user(uid)
+    today = datetime.now().strftime('%d/%m')
+    
+    if any(today in entry for entry in user.get('history', [])):
+        bot.send_message(uid, "Bugun yakunlab bo'lingan! ✨")
+        return
+
+    percent = int((len(user.get('completed_today', [])) / TOTAL_TASKS) * 100)
+    
+    if percent < 50:
+        feedback = "Yomon emas, lekin bundan ko'pini qila olasan! 💪"
+    elif 50 <= percent < 90:
+        feedback = "Zo'r natija! Sen bundanda ko'prog'iga loyiqsan! 🔥"
+    else:
+        feedback = "Malades, bo'lishi mumkin emas! 🚀"
+
+    user.setdefault('history', []).append(f"{today}: {percent}%")
+    user['completed_today'] = []
+    user['current_day'] = user.get('current_day', 1) + 1
+    save_data()
+    
+    bot.send_animation(uid, random.choice(GIFS), 
+          caption=f"🏁 Natija: {percent}%\n\n{feedback}",
+                       reply_markup=main_menu(uid))
     user = get_user(uid)
     today = datetime.now().strftime('%d/%m')
     
@@ -119,8 +156,8 @@ def finish_day(message):
     
     # Animatsiya yuborgandan so'ng, yangi menyuni ham yuboramiz!
     bot.send_animation(uid, random.choice(GIFS), 
-                       caption=f"🏁 Natija: {percent}%\n\n{feedback}\n\nErtangi kun uchun menyu yangilandi 👇",
-                       reply_markup=main_menu(uid)) # SHU QATOR MUHIM
+     caption=f"🏁 Natija: {percent}%\n\n{feedback}\n\nErtangi kun uchun menyu yangilandi 👇",
+     reply_markup=main_menu(uid)) # SHU QATOR MUHIM
 
 def check_subscription(user_id):
     try:
